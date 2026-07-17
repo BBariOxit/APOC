@@ -1,29 +1,32 @@
 import {
-  ArrowDownRight,
-  ArrowUpRight,
+  BookOpen,
+  ChevronRight,
+  CircleAlert,
   CircleCheck,
   Clock3,
-  MoonStar,
-  TriangleAlert,
+  HeartPulse,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { DailyUpdate } from "@/features/game/types";
+import type { DailyUpdate, GameTab } from "@/features/game/types";
 import { cn } from "@/lib/utils";
 
 interface DailyPanelProps {
   updates: DailyUpdate[];
-  onOpenEvent: () => void;
+  hasPendingEvent: boolean;
+  hasPendingCare: boolean;
+  onNavigate: (tab: GameTab) => void;
+  onOpenJournal: () => void;
 }
 
 const updateIcons = {
-  warning: TriangleAlert,
+  warning: CircleAlert,
   success: CircleCheck,
   neutral: Clock3,
 };
@@ -34,26 +37,26 @@ const updateStyles = {
   neutral: "bg-white/5 text-zinc-300",
 };
 
-export function DailyPanel({ updates, onOpenEvent }: DailyPanelProps) {
+export function DailyPanel({
+  updates,
+  hasPendingEvent,
+  hasPendingCare,
+  onNavigate,
+  onOpenJournal,
+}: DailyPanelProps) {
+  const pendingTaskCount = Number(hasPendingEvent) + Number(hasPendingCare);
+
   return (
-    <section className="space-y-5">
+    <section className="space-y-6">
       <Card className="overflow-hidden border-white/8 bg-zinc-900/70 py-0 shadow-none">
-        <CardHeader className="border-b border-white/6 bg-gradient-to-br from-zinc-800/80 to-zinc-900 px-5 py-5 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Badge
-              variant="outline"
-              className="border-white/10 bg-black/10 text-zinc-300"
-            >
-              <MoonStar /> Báo cáo buổi sáng
-            </Badge>
-            <span className="font-mono text-xs text-muted-foreground">
-              17.07 · 06:40
-            </span>
-          </div>
-          <CardTitle className="mt-5 text-2xl tracking-tight sm:text-3xl">
+        <CardHeader className="border-b border-white/6 bg-gradient-to-br from-zinc-800/70 to-zinc-900 px-5 py-5 sm:px-6">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            Báo cáo đầu ngày
+          </p>
+          <CardTitle className="mt-2 text-2xl tracking-tight sm:text-3xl">
             Ngày 12
           </CardTitle>
-          <p className="max-w-2xl text-sm leading-6 text-zinc-300 sm:text-base sm:leading-7">
+          <p className="max-w-3xl text-sm leading-6 text-zinc-300 sm:text-base sm:leading-7">
             Không ai ngủ ngon tối qua. Tiếng kim loại ngoài hành lang chỉ dừng
             lại khi trời gần sáng, còn lượng nước dự trữ đã xuống thấp hơn dự
             tính.
@@ -64,106 +67,123 @@ export function DailyPanel({ updates, onOpenEvent }: DailyPanelProps) {
           <DailyMetric
             label="Thức ăn"
             value="6 khẩu phần"
-            change="-2 hôm qua"
-            trend="down"
+            detail="Đủ khoảng 2 ngày"
           />
           <DailyMetric
             label="Nước sạch"
             value="4 chai"
-            change="-2 hôm qua"
-            trend="down"
+            detail="Chỉ đủ cho hôm nay"
+            tone="warning"
           />
           <DailyMetric
             label="Tinh thần nhóm"
             value="Tạm ổn"
-            change="+3 sau tin của Hùng"
-            trend="up"
+            detail="1 người đang bất ổn"
+            tone="warning"
           />
         </CardContent>
       </Card>
 
-      <button
-        type="button"
-        onClick={onOpenEvent}
-        className="group flex w-full items-center justify-between gap-4 rounded-xl border border-amber-300/15 bg-amber-300/8 px-4 py-3 text-left transition-colors hover:bg-amber-300/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/40"
-      >
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-300/10 text-amber-200">
-            <TriangleAlert className="size-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="font-medium text-amber-100">Có một sự kiện chờ xử lý</p>
-            <p className="truncate text-xs text-amber-100/60">
-              Giải quyết trước khi kết thúc ngày hiện tại.
-            </p>
+      <div>
+        <SectionHeader
+          title="Việc cần làm"
+          description={
+            pendingTaskCount > 0
+              ? `${pendingTaskCount} việc nên xử lý trước khi qua ngày.`
+              : "Không còn việc bắt buộc trong ngày hôm nay."
+          }
+        />
+
+        {pendingTaskCount > 0 ? (
+          <div className="overflow-hidden rounded-xl border border-white/8 bg-zinc-900/50">
+            {hasPendingEvent && (
+              <TaskRow
+                icon={CircleAlert}
+                title="Tiếng gõ cửa"
+                description="Sự kiện bắt buộc phải được giải quyết trước khi qua ngày."
+                actionLabel="Xử lý"
+                onAction={() => onNavigate("event")}
+              />
+            )}
+            {hasPendingCare && (
+              <TaskRow
+                icon={HeartPulse}
+                title="Lan đang bị thương"
+                description="Sức khỏe sẽ tiếp tục giảm nếu không được chăm sóc."
+                actionLabel="Chăm sóc"
+                onAction={() => onNavigate("characters")}
+                withDivider={hasPendingEvent}
+              />
+            )}
           </div>
-        </div>
-        <ArrowUpRight className="size-4 shrink-0 text-amber-200 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-      </button>
+        ) : (
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-300/10 bg-emerald-300/5 px-4 py-4 text-sm text-emerald-100/80">
+            <CircleCheck className="size-4" /> Mọi việc quan trọng đã được xử
+            lý.
+          </div>
+        )}
+      </div>
 
       <div>
         <div className="mb-3 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-semibold">Diễn biến gần đây</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Những thay đổi có ảnh hưởng đến hôm nay.
-            </p>
-          </div>
-          <span className="text-xs text-muted-foreground">
-            {updates.length} cập nhật
-          </span>
+          <SectionHeader
+            title="Diễn biến"
+            description="Những thay đổi đã xảy ra từ cuối ngày trước."
+            className="mb-0"
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-muted-foreground"
+            onClick={onOpenJournal}
+          >
+            <BookOpen /> Xem nhật ký
+          </Button>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-white/8 bg-zinc-900/50">
-          {updates.map((update, index) => {
-            const Icon = updateIcons[update.type];
-
-            return (
-              <article
-                key={update.id}
-                className={cn(
-                  "flex gap-3 px-4 py-4 sm:gap-4 sm:px-5",
-                  index > 0 && "border-t border-white/6",
-                )}
-              >
-                <span
-                  className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-lg",
-                    updateStyles[update.type],
-                  )}
-                >
-                  <Icon className="size-4" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-                    <h3 className="font-medium">{update.title}</h3>
-                    <time className="text-xs text-muted-foreground">
-                      {update.time}
-                    </time>
-                  </div>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {update.description}
-                  </p>
-                </div>
-              </article>
-            );
-          })}
+          {updates.map((update, index) => (
+            <UpdateRow
+              key={update.id}
+              update={update}
+              withDivider={index > 0}
+              onNavigate={onNavigate}
+            />
+          ))}
         </div>
       </div>
     </section>
   );
 }
 
+interface SectionHeaderProps {
+  title: string;
+  description: string;
+  className?: string;
+}
+
+function SectionHeader({ title, description, className }: SectionHeaderProps) {
+  return (
+    <div className={cn("mb-3", className)}>
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
 interface DailyMetricProps {
   label: string;
   value: string;
-  change: string;
-  trend: "up" | "down";
+  detail: string;
+  tone?: "neutral" | "warning";
 }
 
-function DailyMetric({ label, value, change, trend }: DailyMetricProps) {
-  const TrendIcon = trend === "up" ? ArrowUpRight : ArrowDownRight;
-
+function DailyMetric({
+  label,
+  value,
+  detail,
+  tone = "neutral",
+}: DailyMetricProps) {
   return (
     <div className="bg-zinc-950/70 px-5 py-4 sm:px-6">
       <p className="text-xs uppercase tracking-wider text-muted-foreground">
@@ -172,12 +192,107 @@ function DailyMetric({ label, value, change, trend }: DailyMetricProps) {
       <p className="mt-1.5 text-lg font-medium">{value}</p>
       <p
         className={cn(
-          "mt-1 flex items-center gap-1 text-xs",
-          trend === "up" ? "text-emerald-300" : "text-zinc-500",
+          "mt-1 text-xs",
+          tone === "warning" ? "text-amber-200/80" : "text-zinc-500",
         )}
       >
-        <TrendIcon className="size-3" /> {change}
+        {detail}
       </p>
     </div>
   );
+}
+
+interface TaskRowProps {
+  icon: typeof CircleAlert;
+  title: string;
+  description: string;
+  actionLabel: string;
+  onAction: () => void;
+  withDivider?: boolean;
+}
+
+function TaskRow({
+  icon: Icon,
+  title,
+  description,
+  actionLabel,
+  onAction,
+  withDivider = false,
+}: TaskRowProps) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-3 border-l-2 border-l-amber-300/50 px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-5",
+        withDivider && "border-t border-t-white/6",
+      )}
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-300/10 text-amber-200">
+        <Icon className="size-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-medium">{title}</h3>
+        <p className="mt-1 text-sm leading-5 text-muted-foreground">
+          {description}
+        </p>
+      </div>
+      <Button variant="outline" size="sm" onClick={onAction}>
+        {actionLabel} <ChevronRight />
+      </Button>
+    </div>
+  );
+}
+
+interface UpdateRowProps {
+  update: DailyUpdate;
+  withDivider: boolean;
+  onNavigate: (tab: GameTab) => void;
+}
+
+function UpdateRow({ update, withDivider, onNavigate }: UpdateRowProps) {
+  const Icon = updateIcons[update.type];
+  const content = (
+    <>
+      <span
+        className={cn(
+          "grid size-9 shrink-0 place-items-center rounded-lg",
+          updateStyles[update.type],
+        )}
+      >
+        <Icon className="size-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+          <h3 className="font-medium">{update.title}</h3>
+          <time className="text-xs text-muted-foreground">{update.time}</time>
+        </div>
+        <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">
+          {update.description}
+        </p>
+      </div>
+      {update.destination && (
+        <ChevronRight className="size-4 shrink-0 text-zinc-600 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-300" />
+      )}
+    </>
+  );
+  const rowClassName = cn(
+    "group flex w-full gap-3 px-4 py-4 text-left sm:gap-4 sm:px-5",
+    withDivider && "border-t border-white/6",
+  );
+
+  if (update.destination) {
+    return (
+      <button
+        type="button"
+        className={cn(
+          rowClassName,
+          "transition-colors hover:bg-white/3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        )}
+        onClick={() => onNavigate(update.destination!)}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <article className={rowClassName}>{content}</article>;
 }

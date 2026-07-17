@@ -1,11 +1,13 @@
 "use client";
 
 import {
+  ArrowRight,
   Footprints,
+  MessageSquareText,
   Newspaper,
   PackageOpen,
-  Sparkles,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -50,6 +52,26 @@ interface CareRequest {
   action: CareAction;
 }
 
+interface GameNavigationTab {
+  value: GameTab;
+  label: string;
+  icon: LucideIcon;
+  mobileOnly?: boolean;
+}
+
+const gameNavigationTabs: GameNavigationTab[] = [
+  { value: "daily", label: "Hằng ngày", icon: Newspaper },
+  { value: "event", label: "Sự kiện", icon: MessageSquareText },
+  { value: "characters", label: "Nhân vật", icon: Users },
+  { value: "expedition", label: "Thám hiểm", icon: Footprints },
+  {
+    value: "inventory",
+    label: "Kho đồ",
+    icon: PackageOpen,
+    mobileOnly: true,
+  },
+];
+
 const careLabels: Record<
   CareAction,
   { title: string; description: string; categories: InventoryItem["category"][] }
@@ -81,6 +103,7 @@ export function GameplayScreen() {
     useState<string | null>(null);
   const [selectedLoadoutIds, setSelectedLoadoutIds] = useState<string[]>([]);
   const [careRequest, setCareRequest] = useState<CareRequest | null>(null);
+  const [caredCharacterIds, setCaredCharacterIds] = useState<string[]>([]);
 
   const aliveCount = mockCharacters.filter(
     (character) => character.state !== "dead",
@@ -112,6 +135,12 @@ export function GameplayScreen() {
   function handleApplyCareItem(item: InventoryItem) {
     if (!careRequest) {
       return;
+    }
+
+    if (careRequest.action === "heal") {
+      setCaredCharacterIds((current) =>
+        Array.from(new Set([...current, careRequest.character.id])),
+      );
     }
 
     toast.success(`Đã dùng ${item.name} cho ${careRequest.character.name}`);
@@ -170,10 +199,11 @@ export function GameplayScreen() {
             description: "Game engine sẽ tạo diễn biến cho ngày tiếp theo.",
           })
         }
+        onOpenEvent={() => setActiveTab("event")}
         onMenuAction={handleMenuAction}
       />
 
-      <main className="mx-auto w-full max-w-[1600px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+      <main className="mx-auto w-full max-w-[1600px] px-4 pb-24 pt-5 sm:px-6 sm:py-6 lg:px-8">
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as GameTab)}
@@ -183,32 +213,37 @@ export function GameplayScreen() {
             <div className="min-w-0">
               <TabsList
                 variant="line"
-                className="mb-5 h-10 w-full max-w-full justify-start overflow-x-auto border-b border-white/8 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="mb-5 h-10 w-full max-w-full justify-start gap-1 overflow-x-auto border-b border-white/8 sm:gap-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                <TabsTrigger value="daily" className="px-3">
-                  <Newspaper /> Hằng ngày
-                </TabsTrigger>
-                <TabsTrigger value="event" className="px-3">
-                  <Sparkles /> Sự kiện
-                  {resolvedChoiceId === null && (
-                    <span className="size-1.5 rounded-full bg-amber-300" />
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="characters" className="px-3">
-                  <Users /> Nhân vật
-                </TabsTrigger>
-                <TabsTrigger value="expedition" className="px-3">
-                  <Footprints /> Thám hiểm
-                </TabsTrigger>
-                <TabsTrigger value="inventory" className="px-3 lg:hidden">
-                  <PackageOpen /> Kho đồ
-                </TabsTrigger>
+                {gameNavigationTabs.map((tab) => {
+                  const Icon = tab.icon;
+
+                  return (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className={`flex-none px-3 sm:px-4 ${
+                        tab.mobileOnly ? "lg:hidden" : ""
+                      }`}
+                    >
+                      <Icon /> {tab.label}
+                      {tab.value === "event" && resolvedChoiceId === null && (
+                        <span className="size-1.5 rounded-full bg-amber-300" />
+                      )}
+                    </TabsTrigger>
+                  );
+                })}
               </TabsList>
 
               <TabsContent value="daily">
                 <DailyPanel
                   updates={mockDailyUpdates}
-                  onOpenEvent={() => setActiveTab("event")}
+                  hasPendingEvent={resolvedChoiceId === null}
+                  hasPendingCare={!caredCharacterIds.includes("lan")}
+                  onNavigate={setActiveTab}
+                  onOpenJournal={() =>
+                    toast.info("Nhật ký đầy đủ sẽ được mở từ đây.")
+                  }
                 />
               </TabsContent>
               <TabsContent value="event">
@@ -240,25 +275,50 @@ export function GameplayScreen() {
                 <InventoryPanel
                   items={mockInventory}
                   selectedItemId={selectedItemId}
+                  highlightedItemKeys={
+                    resolvedChoiceId === null ? ["water"] : []
+                  }
                   onSelectItem={setSelectedItemId}
                   onUseItem={handleUseInventoryItem}
-                  className="min-h-[620px]"
                 />
               </TabsContent>
             </div>
 
-            <div className="sticky top-21 hidden lg:block">
+            <div className="sticky top-19 hidden lg:block">
               <InventoryPanel
                 items={mockInventory}
                 selectedItemId={selectedItemId}
+                highlightedItemKeys={
+                  resolvedChoiceId === null ? ["water"] : []
+                }
                 onSelectItem={setSelectedItemId}
                 onUseItem={handleUseInventoryItem}
-                className="h-[calc(100vh-6.5rem)] min-h-[580px]"
+                className="max-h-[calc(100vh-5.75rem)]"
               />
             </div>
           </div>
         </Tabs>
       </main>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/8 bg-zinc-950/90 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur-xl sm:hidden">
+        <Button
+          size="lg"
+          className="w-full"
+          disabled={resolvedChoiceId === null}
+          title={
+            resolvedChoiceId === null
+              ? "Hãy giải quyết sự kiện trước"
+              : "Kết thúc ngày hiện tại"
+          }
+          onClick={() =>
+            toast.success("Ngày 12 đã hoàn tất", {
+              description: "Game engine sẽ tạo diễn biến cho ngày tiếp theo.",
+            })
+          }
+        >
+          Qua ngày <ArrowRight />
+        </Button>
+      </div>
 
       <Dialog
         open={careRequest !== null}

@@ -65,6 +65,7 @@ export interface InventoryItem {
   key: string;
   name: string;
   shortName: string;
+  shortDescription: string;
   description: string;
   category: InventoryCategory;
   condition: ItemCondition;
@@ -79,6 +80,7 @@ export interface DailyUpdate {
   title: string;
   description: string;
   time: string;
+  destination?: GameTab;
 }
 
 export interface EventChoice {
