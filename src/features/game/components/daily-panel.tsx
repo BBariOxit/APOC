@@ -3,7 +3,8 @@ import {
   ChevronRight,
   CircleAlert,
   CircleCheck,
-  Clock3,
+  Ear,
+  GitBranch,
   HeartPulse,
 } from "lucide-react";
 
@@ -14,37 +15,55 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { DailyUpdate, GameTab } from "@/features/game/types";
+import type {
+  DailyTask,
+  DailyUpdate,
+  GameEffect,
+  GameTab,
+} from "@/features/game/types";
 import { cn } from "@/lib/utils";
 
 interface DailyPanelProps {
   updates: DailyUpdate[];
-  hasPendingEvent: boolean;
-  hasPendingCare: boolean;
+  tasks: DailyTask[];
   onNavigate: (tab: GameTab) => void;
   onOpenJournal: () => void;
 }
 
-const updateIcons = {
-  warning: CircleAlert,
-  success: CircleCheck,
-  neutral: Clock3,
+const updatePresentation = {
+  outcome: {
+    icon: GitBranch,
+    className: "bg-white/5 text-zinc-300",
+  },
+  return: {
+    icon: CircleCheck,
+    className: "bg-emerald-400/10 text-emerald-200",
+  },
+  ambient: {
+    icon: Ear,
+    className: "bg-white/5 text-zinc-400",
+  },
 };
 
-const updateStyles = {
-  warning: "bg-amber-400/10 text-amber-200",
-  success: "bg-emerald-400/10 text-emerald-200",
-  neutral: "bg-white/5 text-zinc-300",
+const effectStyles: Record<GameEffect["tone"], string> = {
+  positive: "border-emerald-300/15 bg-emerald-300/8 text-emerald-200",
+  negative: "border-red-300/15 bg-red-300/8 text-red-200",
+  warning: "border-amber-300/15 bg-amber-300/8 text-amber-200",
+  neutral: "border-white/8 bg-white/5 text-zinc-300",
+};
+
+const taskIcons = {
+  event: CircleAlert,
+  care: HeartPulse,
 };
 
 export function DailyPanel({
   updates,
-  hasPendingEvent,
-  hasPendingCare,
+  tasks,
   onNavigate,
   onOpenJournal,
 }: DailyPanelProps) {
-  const pendingTaskCount = Number(hasPendingEvent) + Number(hasPendingCare);
+  const pendingTaskCount = tasks.length;
 
   return (
     <section className="space-y-6">
@@ -57,9 +76,9 @@ export function DailyPanel({
             Ngày 12
           </CardTitle>
           <p className="max-w-3xl text-sm leading-6 text-zinc-300 sm:text-base sm:leading-7">
-            Không ai ngủ ngon tối qua. Tiếng kim loại ngoài hành lang chỉ dừng
-            lại khi trời gần sáng, còn lượng nước dự trữ đã xuống thấp hơn dự
-            tính.
+            Không ai ngủ ngon tối qua. Hùng trở về khi trời gần sáng, đúng lúc
+            tiếng kim loại ngoài hành lang im bặt. Lượng nước dự trữ giờ chỉ đủ
+            dùng trong hôm nay.
           </p>
         </CardHeader>
 
@@ -85,52 +104,8 @@ export function DailyPanel({
       </Card>
 
       <div>
-        <SectionHeader
-          title="Việc cần làm"
-          description={
-            pendingTaskCount > 0
-              ? `${pendingTaskCount} việc nên xử lý trước khi qua ngày.`
-              : "Không còn việc bắt buộc trong ngày hôm nay."
-          }
-        />
-
-        {pendingTaskCount > 0 ? (
-          <div className="overflow-hidden rounded-xl border border-white/8 bg-zinc-900/50">
-            {hasPendingEvent && (
-              <TaskRow
-                icon={CircleAlert}
-                title="Tiếng gõ cửa"
-                description="Sự kiện bắt buộc phải được giải quyết trước khi qua ngày."
-                actionLabel="Xử lý"
-                onAction={() => onNavigate("event")}
-              />
-            )}
-            {hasPendingCare && (
-              <TaskRow
-                icon={HeartPulse}
-                title="Lan đang bị thương"
-                description="Sức khỏe sẽ tiếp tục giảm nếu không được chăm sóc."
-                actionLabel="Chăm sóc"
-                onAction={() => onNavigate("characters")}
-                withDivider={hasPendingEvent}
-              />
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-300/10 bg-emerald-300/5 px-4 py-4 text-sm text-emerald-100/80">
-            <CircleCheck className="size-4" /> Mọi việc quan trọng đã được xử
-            lý.
-          </div>
-        )}
-      </div>
-
-      <div>
-        <div className="mb-3 flex items-end justify-between gap-4">
-          <SectionHeader
-            title="Diễn biến"
-            description="Những thay đổi đã xảy ra từ cuối ngày trước."
-            className="mb-0"
-          />
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <SectionHeader title="Diễn biến mới" className="mb-0" />
           <Button
             variant="ghost"
             size="sm"
@@ -152,22 +127,43 @@ export function DailyPanel({
           ))}
         </div>
       </div>
+
+      <div>
+        <SectionHeader title="Việc cần làm" />
+
+        {pendingTaskCount > 0 ? (
+          <div className="overflow-hidden rounded-xl border border-white/8 bg-zinc-900/50">
+            {tasks.map((task, index) => (
+              <TaskRow
+                key={task.id}
+                icon={taskIcons[task.type]}
+                title={task.title}
+                description={task.description}
+                actionLabel={task.actionLabel}
+                onAction={() => onNavigate(task.destination)}
+                withDivider={index > 0}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 rounded-xl border border-emerald-300/10 bg-emerald-300/5 px-4 py-4 text-sm text-emerald-100/80">
+            <CircleCheck className="size-4" /> Mọi việc quan trọng đã được xử
+            lý.
+          </div>
+        )}
+      </div>
     </section>
   );
 }
 
 interface SectionHeaderProps {
   title: string;
-  description: string;
   className?: string;
 }
 
-function SectionHeader({ title, description, className }: SectionHeaderProps) {
+function SectionHeader({ title, className }: SectionHeaderProps) {
   return (
-    <div className={cn("mb-3", className)}>
-      <h2 className="text-lg font-semibold">{title}</h2>
-      <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-    </div>
+    <h2 className={cn("mb-3 text-lg font-semibold", className)}>{title}</h2>
   );
 }
 
@@ -249,29 +245,53 @@ interface UpdateRowProps {
 }
 
 function UpdateRow({ update, withDivider, onNavigate }: UpdateRowProps) {
-  const Icon = updateIcons[update.type];
+  const presentation = updatePresentation[update.kind];
+  const Icon = presentation.icon;
   const content = (
     <>
       <span
         className={cn(
           "grid size-9 shrink-0 place-items-center rounded-lg",
-          updateStyles[update.type],
+          presentation.className,
         )}
       >
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
+        {update.label && (
+          <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-zinc-500">
+            {update.label}
+          </p>
+        )}
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
           <h3 className="font-medium">{update.title}</h3>
           <time className="text-xs text-muted-foreground">{update.time}</time>
         </div>
-        <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
           {update.description}
         </p>
+        {update.effects && update.effects.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {update.effects.map((effect) => (
+              <span
+                key={effect.label}
+                className={cn(
+                  "rounded-md border px-2 py-1 text-xs font-medium",
+                  effectStyles[effect.tone],
+                )}
+              >
+                {effect.label}
+              </span>
+            ))}
+          </div>
+        )}
+        {update.destination && update.actionLabel && (
+          <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-zinc-300">
+            {update.actionLabel}
+            <ChevronRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        )}
       </div>
-      {update.destination && (
-        <ChevronRight className="size-4 shrink-0 text-zinc-600 transition-transform group-hover:translate-x-0.5 group-hover:text-zinc-300" />
-      )}
     </>
   );
   const rowClassName = cn(

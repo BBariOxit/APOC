@@ -3,6 +3,7 @@ import type {
   DailyUpdate,
   GameCharacter,
   InventoryItem,
+  ReturnJourneyReport,
 } from "@/features/game/types";
 
 export const mockCharacters: GameCharacter[] = [
@@ -32,10 +33,12 @@ export const mockCharacters: GameCharacter[] = [
     name: "Hùng",
     initials: "HU",
     role: "Thám hiểm",
-    state: "expedition",
-    stats: { health: 85, satiety: 70, hydration: 62, sanity: 66 },
-    conditions: [],
-    expeditionDay: 3,
+    state: "shelter",
+    stats: { health: 71, satiety: 38, hydration: 24, sanity: 63 },
+    conditions: [
+      { label: "Vừa trở về", tone: "neutral" },
+      { label: "Mất nước", tone: "danger" },
+    ],
   },
   {
     id: "an",
@@ -58,7 +61,7 @@ export const mockInventory: InventoryItem[] = [
     description: "Một khẩu phần được bảo quản kỹ. Không ngon, nhưng đủ sống.",
     category: "food",
     condition: "intact",
-    quantity: 3,
+    quantity: 6,
     icon: "can",
     usable: true,
   },
@@ -158,21 +161,111 @@ export const mockInventory: InventoryItem[] = [
 
 export const mockDailyUpdates: DailyUpdate[] = [
   {
-    id: "expedition-signal",
-    type: "success",
-    title: "Nhận được tín hiệu của Hùng",
-    description: "Hùng vẫn an toàn sau ba ngày bên ngoài và đang tiếp tục tìm kiếm vật tư.",
-    time: "Trong đêm",
-    destination: "expedition",
+    id: "reinforced-side-door",
+    kind: "outcome",
+    label: "Hệ quả hôm qua",
+    title: "Cửa phụ đã được gia cố",
+    description:
+      "Minh và An đã dùng những tấm kim loại còn lại để đóng kín cửa phụ. Minh bị thương nhẹ trong lúc làm việc.",
+    time: "Cuối ngày 11",
+    effects: [
+      { label: "An toàn hầm +1", tone: "positive" },
+      { label: "Minh · Sức khỏe −8", tone: "negative" },
+    ],
+  },
+  {
+    id: "hung-returned",
+    kind: "return",
+    label: "Đã trở về",
+    title: "Hùng đã quay lại hầm",
+    description: "Sau bốn ngày mất liên lạc, Hùng cuối cùng đã trở về.",
+    time: "Rạng sáng",
+    actionLabel: "Đọc hành trình",
+    destination: "journey",
   },
   {
     id: "night-noise",
-    type: "neutral",
+    kind: "ambient",
     title: "Có tiếng động ngoài cửa hầm",
     description: "Tiếng kim loại va vào nhau xuất hiện nhiều lần trong đêm.",
     time: "Đêm qua",
   },
 ];
+
+export const mockReturnJourney: ReturnJourneyReport | null = {
+  id: "hung-return-day-12",
+  characterId: "hung",
+  characterName: "Hùng",
+  characterInitials: "HU",
+  departedDay: 8,
+  returnedDay: 12,
+  durationDays: 4,
+  condition: "Kiệt sức · Mất nước",
+  summary:
+    "Hùng mang về một số vật tư và phát hiện tuyến đường mới. Anh đang mất nước và cần được chăm sóc.",
+  gains: [
+    { label: "+2 Đồ hộp", tone: "positive" },
+    { label: "+1 Nước sạch", tone: "positive" },
+    { label: "+1 Bản đồ cũ", tone: "positive" },
+  ],
+  losses: [
+    { label: "Hùng · Sức khỏe −14", tone: "negative" },
+    { label: "Rìu đã hỏng", tone: "warning" },
+  ],
+  discoveries: [
+    { label: "Mở khóa: Kho hàng số 4", tone: "neutral" },
+    { label: "Tuyến đường phía đông", tone: "neutral" },
+  ],
+  entries: [
+    {
+      id: "journey-day-1",
+      day: 1,
+      kind: "search",
+      title: "Những căn nhà im lặng",
+      location: "Khu dân cư phía đông",
+      description:
+        "Hùng lục soát ba căn nhà bỏ hoang trước khi trời tối. Một căn bếp vẫn còn hai hộp thức ăn chưa bị lấy đi.",
+      effects: [{ label: "+2 Đồ hộp", tone: "positive" }],
+    },
+    {
+      id: "journey-day-2",
+      day: 2,
+      kind: "encounter",
+      title: "Người lạ bên đường",
+      location: "Đường vành đai",
+      description:
+        "Một người sống sót bị thương xin Hùng chia nước. Đổi lại, người đó đánh dấu một trạm tiếp tế cũ lên mảnh bản đồ nhàu nát.",
+      effects: [
+        { label: "−1 Nước sạch", tone: "negative" },
+        { label: "+1 Bản đồ cũ", tone: "positive" },
+        { label: "Mở khóa: Kho hàng số 4", tone: "neutral" },
+      ],
+    },
+    {
+      id: "journey-day-3",
+      day: 3,
+      kind: "discovery",
+      title: "Trạm tiếp tế",
+      location: "Kho hàng số 4",
+      description:
+        "Bên trong kho chỉ còn một chai nước nguyên vẹn. Tiếng động ở tầng dưới buộc Hùng phải rời đi trước khi kịp tìm kiếm thêm.",
+      effects: [{ label: "+1 Nước sạch", tone: "positive" }],
+    },
+    {
+      id: "journey-day-4",
+      day: 4,
+      kind: "danger",
+      title: "Đường về",
+      location: "Lối hầm phía bắc",
+      description:
+        "Hùng bị một sinh vật phục kích trên đường về. Anh thoát được, nhưng chiếc rìu đã gãy và vết thương khiến quãng đường cuối kéo dài tới rạng sáng.",
+      effects: [
+        { label: "Hùng · Sức khỏe −14", tone: "negative" },
+        { label: "Rìu đã hỏng", tone: "warning" },
+      ],
+    },
+  ],
+};
 
 export const mockCurrentEvent: CurrentEvent = {
   id: "mysterious-knock",

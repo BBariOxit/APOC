@@ -1,4 +1,10 @@
-import { Activity, Droplets, HeartPulse, Utensils } from "lucide-react";
+import {
+  Activity,
+  Droplets,
+  EyeOff,
+  HeartPulse,
+  Utensils,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,66 +65,81 @@ export function CharacterCard({ character, onCare }: CharacterCardProps) {
         </Badge>
       </CardHeader>
 
-      <CardContent className="space-y-4 px-4 py-4">
-        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-          <StatMeter label="Sức khỏe" value={character.stats.health} />
-          <StatMeter label="No bụng" value={character.stats.satiety} />
-          <StatMeter label="Đủ nước" value={character.stats.hydration} />
-          <StatMeter label="Tinh thần" value={character.stats.sanity} />
-        </div>
+      {character.state === "expedition" ? (
+        <CardContent className="px-4 py-5">
+          <div className="flex min-h-24 items-center gap-3 rounded-xl border border-dashed border-white/10 bg-zinc-950/30 px-4 py-4">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/5 text-zinc-400">
+              <EyeOff className="size-4" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-zinc-300">
+                Không có thông tin từ bên ngoài
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                Chỉ số và tình trạng sẽ được cập nhật nếu nhân vật trở về.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      ) : (
+        <>
+          <CardContent className="space-y-4 px-4 py-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <StatMeter label="Sức khỏe" value={character.stats.health} />
+              <StatMeter label="No bụng" value={character.stats.satiety} />
+              <StatMeter label="Đủ nước" value={character.stats.hydration} />
+              <StatMeter label="Tinh thần" value={character.stats.sanity} />
+            </div>
 
-        <div className="flex min-h-6 flex-wrap gap-1.5">
-          {character.conditions.length > 0 ? (
-            character.conditions.map((condition) => (
-              <Badge
-                key={condition.label}
-                variant="outline"
-                className={cn(
-                  "font-normal",
-                  conditionStyles[condition.tone],
-                )}
+            <div className="flex min-h-6 flex-wrap gap-1.5">
+              {character.conditions.length > 0 ? (
+                character.conditions.map((condition) => (
+                  <Badge
+                    key={condition.label}
+                    variant="outline"
+                    className={cn(
+                      "font-normal",
+                      conditionStyles[condition.tone],
+                    )}
+                  >
+                    {condition.label}
+                  </Badge>
+                ))
+              ) : (
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Activity className="size-3.5" /> Không có tình trạng đặc biệt
+                </span>
+              )}
+            </div>
+          </CardContent>
+
+          {canReceiveCare && (
+            <CardFooter className="grid grid-cols-3 gap-2 border-t border-white/6 bg-black/10 px-4 py-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCare(character, "feed")}
               >
-                {condition.label}
-              </Badge>
-            ))
-          ) : character.state === "expedition" ? (
-            <span className="text-xs text-muted-foreground">
-              Đã ở bên ngoài {character.expeditionDay} ngày
-            </span>
-          ) : (
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Activity className="size-3.5" /> Không có tình trạng đặc biệt
-            </span>
+                <Utensils /> Ăn
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCare(character, "hydrate")}
+              >
+                <Droplets /> Uống
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCare(character, "heal")}
+              >
+                <HeartPulse /> Chữa trị
+              </Button>
+            </CardFooter>
           )}
-        </div>
-      </CardContent>
-
-      <CardFooter className="grid grid-cols-3 gap-2 border-t border-white/6 bg-black/10 px-4 py-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={!canReceiveCare}
-          onClick={() => onCare(character, "feed")}
-        >
-          <Utensils /> Ăn
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={!canReceiveCare}
-          onClick={() => onCare(character, "hydrate")}
-        >
-          <Droplets /> Uống
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={!canReceiveCare}
-          onClick={() => onCare(character, "heal")}
-        >
-          <HeartPulse /> Chữa trị
-        </Button>
-      </CardFooter>
+        </>
+      )}
     </Card>
   );
 }

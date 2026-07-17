@@ -6,6 +6,7 @@ import {
   MessageSquareText,
   Newspaper,
   PackageOpen,
+  Route,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -32,6 +33,7 @@ import {
   mockCurrentEvent,
   mockDailyUpdates,
   mockInventory,
+  mockReturnJourney,
 } from "@/features/game/mock-data";
 import { CharactersPanel } from "@/features/game/components/characters-panel";
 import type { CareAction } from "@/features/game/components/character-card";
@@ -41,7 +43,9 @@ import { ExpeditionPanel } from "@/features/game/components/expedition-panel";
 import { GameHeader } from "@/features/game/components/game-header";
 import { InventoryPanel } from "@/features/game/components/inventory-panel";
 import { ItemIcon } from "@/features/game/components/item-icon";
+import { ReturnJourneyPanel } from "@/features/game/components/return-journey-panel";
 import type {
+  DailyTask,
   GameCharacter,
   GameTab,
   InventoryItem,
@@ -57,10 +61,12 @@ interface GameNavigationTab {
   label: string;
   icon: LucideIcon;
   mobileOnly?: boolean;
+  returnOnly?: boolean;
 }
 
 const gameNavigationTabs: GameNavigationTab[] = [
   { value: "daily", label: "Hằng ngày", icon: Newspaper },
+  { value: "journey", label: "Hành trình", icon: Route, returnOnly: true },
   { value: "event", label: "Sự kiện", icon: MessageSquareText },
   { value: "characters", label: "Nhân vật", icon: Users },
   { value: "expedition", label: "Thám hiểm", icon: Footprints },
@@ -103,7 +109,13 @@ export function GameplayScreen() {
     useState<string | null>(null);
   const [selectedLoadoutIds, setSelectedLoadoutIds] = useState<string[]>([]);
   const [careRequest, setCareRequest] = useState<CareRequest | null>(null);
-  const [caredCharacterIds, setCaredCharacterIds] = useState<string[]>([]);
+  const [completedCareActions, setCompletedCareActions] = useState<string[]>([]);
+  const [hasUnreadReturnReport, setHasUnreadReturnReport] = useState(true);
+
+  const returnJourney = mockReturnJourney;
+  const visibleNavigationTabs = gameNavigationTabs.filter(
+    (tab) => !tab.returnOnly || returnJourney !== null,
+  );
 
   const aliveCount = mockCharacters.filter(
     (character) => character.state !== "dead",
@@ -120,6 +132,55 @@ export function GameplayScreen() {
         careLabels[careRequest.action].categories.includes(item.category),
     );
   }, [careRequest]);
+  const dailyTasks = useMemo<DailyTask[]>(() => {
+    const tasks: DailyTask[] = [];
+
+    if (resolvedChoiceId === null) {
+      tasks.push({
+        id: "pending-event",
+        type: "event",
+        title: "Tiếng gõ cửa",
+        description:
+          "Sự kiện bắt buộc phải được giải quyết trước khi qua ngày.",
+        actionLabel: "Xử lý",
+        destination: "event",
+      });
+    }
+
+    if (!completedCareActions.includes("lan:heal")) {
+      tasks.push({
+        id: "care-lan",
+        type: "care",
+        title: "Lan đang bị thương",
+        description:
+          "Sức khỏe sẽ tiếp tục giảm nếu không được chăm sóc.",
+        actionLabel: "Chăm sóc",
+        destination: "characters",
+      });
+    }
+
+    if (!completedCareActions.includes("hung:hydrate")) {
+      tasks.push({
+        id: "care-hung",
+        type: "care",
+        title: "Hùng cần được tiếp nước",
+        description:
+          "Hùng vừa trở về trong tình trạng mất nước và cần được chăm sóc hôm nay.",
+        actionLabel: "Cho uống",
+        destination: "characters",
+      });
+    }
+
+    return tasks;
+  }, [completedCareActions, resolvedChoiceId]);
+
+  function handleNavigate(tab: GameTab) {
+    setActiveTab(tab);
+
+    if (tab === "journey") {
+      setHasUnreadReturnReport(false);
+    }
+  }
 
   function handleResolveEvent(choiceId: string) {
     setResolvedChoiceId(choiceId);
@@ -132,23 +193,36 @@ export function GameplayScreen() {
     setCareRequest({ character, action });
   }
 
+  function handleCareReturnedCharacter() {
+    if (!returnJourney) {
+      return;
+    }
+
+    const character = mockCharacters.find(
+      (item) => item.id === returnJourney.characterId,
+    );
+
+    if (character) {
+      handleCare(character, "hydrate");
+    }
+  }
+
   function handleApplyCareItem(item: InventoryItem) {
     if (!careRequest) {
       return;
     }
 
-    if (careRequest.action === "heal") {
-      setCaredCharacterIds((current) =>
-        Array.from(new Set([...current, careRequest.character.id])),
-      );
-    }
+    const careKey = `${careRequest.character.id}:${careRequest.action}`;
+    setCompletedCareActions((current) =>
+      Array.from(new Set([...current, careKey])),
+    );
 
     toast.success(`Đã dùng ${item.name} cho ${careRequest.character.name}`);
     setCareRequest(null);
   }
 
   function handleUseInventoryItem(item: InventoryItem) {
-    setActiveTab("characters");
+    handleNavigate("characters");
     toast.info(`Đã chọn ${item.name}`, {
       description: "Chọn hành động trên một nhân vật để tiếp tục.",
     });
@@ -199,14 +273,14 @@ export function GameplayScreen() {
             description: "Game engine sẽ tạo diễn biến cho ngày tiếp theo.",
           })
         }
-        onOpenEvent={() => setActiveTab("event")}
+        onOpenEvent={() => handleNavigate("event")}
         onMenuAction={handleMenuAction}
       />
 
       <main className="mx-auto w-full max-w-[1600px] px-4 pb-24 pt-5 sm:px-6 sm:py-6 lg:px-8">
         <Tabs
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as GameTab)}
+          onValueChange={(value) => handleNavigate(value as GameTab)}
           className="gap-5"
         >
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.8fr)_minmax(320px,0.8fr)] xl:gap-6">
@@ -215,7 +289,7 @@ export function GameplayScreen() {
                 variant="line"
                 className="mb-5 h-10 w-full max-w-full justify-start gap-1 overflow-x-auto border-b border-white/8 sm:gap-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                {gameNavigationTabs.map((tab) => {
+                {visibleNavigationTabs.map((tab) => {
                   const Icon = tab.icon;
 
                   return (
@@ -230,6 +304,9 @@ export function GameplayScreen() {
                       {tab.value === "event" && resolvedChoiceId === null && (
                         <span className="size-1.5 rounded-full bg-amber-300" />
                       )}
+                      {tab.value === "journey" && hasUnreadReturnReport && (
+                        <span className="size-1.5 rounded-full bg-emerald-300" />
+                      )}
                     </TabsTrigger>
                   );
                 })}
@@ -238,14 +315,27 @@ export function GameplayScreen() {
               <TabsContent value="daily">
                 <DailyPanel
                   updates={mockDailyUpdates}
-                  hasPendingEvent={resolvedChoiceId === null}
-                  hasPendingCare={!caredCharacterIds.includes("lan")}
-                  onNavigate={setActiveTab}
+                  tasks={dailyTasks}
+                  onNavigate={handleNavigate}
                   onOpenJournal={() =>
                     toast.info("Nhật ký đầy đủ sẽ được mở từ đây.")
                   }
                 />
               </TabsContent>
+              {returnJourney && (
+                <TabsContent value="journey">
+                  <ReturnJourneyPanel
+                    report={returnJourney}
+                    needsCare={
+                      !completedCareActions.includes(
+                        `${returnJourney.characterId}:hydrate`,
+                      )
+                    }
+                    onBackToDaily={() => handleNavigate("daily")}
+                    onCareCharacter={handleCareReturnedCharacter}
+                  />
+                </TabsContent>
+              )}
               <TabsContent value="event">
                 <EventPanel
                   event={mockCurrentEvent}

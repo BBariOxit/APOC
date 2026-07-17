@@ -1,4 +1,10 @@
-import { Backpack, CircleDot, RadioTower, ShieldAlert } from "lucide-react";
+import {
+  Backpack,
+  CircleDot,
+  EyeOff,
+  RadioTower,
+  ShieldAlert,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,15 +78,11 @@ export function ExpeditionPanel({
                   {character.name} đang ở bên ngoài
                 </CardTitle>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Ngày thứ {character.expeditionDay} · Tín hiệu gần nhất: 2 giờ
-                  trước
+                  Chưa có tin tức. Hành trình chỉ được biết khi họ trở về.
                 </p>
               </div>
             </div>
-            <span className="relative mt-1 flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-sky-300 opacity-60" />
-              <span className="relative inline-flex size-2 rounded-full bg-sky-300" />
-            </span>
+            <EyeOff className="mt-1 size-4 shrink-0 text-sky-200/70" />
           </CardHeader>
         </Card>
       ))}

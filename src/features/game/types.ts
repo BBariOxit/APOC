@@ -1,5 +1,6 @@
 export type GameTab =
   | "daily"
+  | "journey"
   | "event"
   | "characters"
   | "expedition"
@@ -76,11 +77,54 @@ export interface InventoryItem {
 
 export interface DailyUpdate {
   id: string;
-  type: "warning" | "success" | "neutral";
+  kind: "outcome" | "return" | "ambient";
+  label?: string;
   title: string;
   description: string;
   time: string;
+  effects?: GameEffect[];
+  actionLabel?: string;
   destination?: GameTab;
+}
+
+export interface DailyTask {
+  id: string;
+  type: "event" | "care";
+  title: string;
+  description: string;
+  actionLabel: string;
+  destination: GameTab;
+}
+
+export interface GameEffect {
+  label: string;
+  tone: "positive" | "negative" | "warning" | "neutral";
+}
+
+export interface JourneyEntry {
+  id: string;
+  day: number;
+  kind: "search" | "encounter" | "discovery" | "danger";
+  title: string;
+  location: string;
+  description: string;
+  effects: GameEffect[];
+}
+
+export interface ReturnJourneyReport {
+  id: string;
+  characterId: string;
+  characterName: string;
+  characterInitials: string;
+  departedDay: number;
+  returnedDay: number;
+  durationDays: number;
+  condition: string;
+  summary: string;
+  gains: GameEffect[];
+  losses: GameEffect[];
+  discoveries: GameEffect[];
+  entries: JourneyEntry[];
 }
 
 export interface EventChoice {
