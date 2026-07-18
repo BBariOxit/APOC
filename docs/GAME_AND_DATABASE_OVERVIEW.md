@@ -137,11 +137,14 @@ Contract khi chuẩn bị chuyến đi:
 - Trước khi xuất phát, UI không liệt kê địa điểm có thể roll, event, item branch, kết quả, tỷ lệ hay cam kết loot. UI chỉ được hiện công dụng khái quát của vật phẩm, số lượng đang mang/còn trong kho, slot capacity và hậu quả chắc chắn là vật phẩm tạm rời kho.
 - Không đánh dấu vật phẩm là “khuyên dùng” bằng logic biết trước event sắp roll. Người chơi tự suy luận từ lịch sử các chuyến trước và mô tả công dụng. Nếu sau này có hệ thống scout/intel, chỉ dữ liệu đã được gameplay mở khóa mới được dùng làm gợi ý.
 - Confirmation cuối phải tóm tắt người đi, tình trạng hiện tại, hành trang và dung lượng đã dùng. Server revalidate character, inventory quantity và capacity trong cùng mutation trước khi tạo expedition.
+- Thám hiểm là hành động tùy chọn trong ngày. Nếu người chơi không bấm xác nhận xuất phát rồi qua ngày, server không tạo expedition, không giữ vật phẩm và không áp dụng hình phạt “bỏ lượt” riêng; game chỉ tiếp tục tiêu hao, event và các hệ quả ngày mới bình thường. Draft người/hành trang phía client phải được bỏ khi snapshot ngày mới được nhận.
+- Khi một nhân vật trở về, server đặt `nextExpeditionDay = returnedDay + 5`. Nhân vật chỉ hợp lệ để chọn khi `run.day >= nextExpeditionDay`; ví dụ trở về ngày 12 thì nghỉ các ngày 12–16 và có thể đi lại từ ngày 17. Cooldown vẫn giảm khi người chơi không cử ai đi.
 
 UI contract cho tab Thám hiểm:
 
 - Thứ tự quyết định là **Người đi → Hành trang → Xác nhận**. Có thể cùng nằm trên một màn hình; không gắn “Bước 1/2” nếu giao diện không khóa tuyến tính và người chơi có thể đổi qua lại.
 - Row nhân vật trong tab này chỉ hiện avatar/initials, tên và selected state. Condition, bốn chỉ số, role và capacity đã có ở tab Nhân vật nên không lặp lại; sức khỏe vẫn được dùng ngầm để tính slot.
+- Nhân vật đang trong cooldown vẫn nằm trong danh sách để người chơi hiểu họ chưa biến mất, nhưng row bị disable và chỉ thêm trạng thái liên quan trực tiếp tới hành động, ví dụ `Nghỉ 3 ngày`. Khi không còn ai hợp lệ, footer ghi `Chưa có ai sẵn sàng`; không thêm nút bỏ qua riêng vì hành động Qua ngày toàn cục đã đảm nhiệm việc đó.
 - Khu hành trang luôn render đúng bốn vị trí cố định. Các slot nằm ngoài capacity hiệu lực của nhân vật được hiển thị ở trạng thái khóa, không hiện công thức hoặc số capacity trên mặt UI. Slot khả dụng là button “Chọn vật phẩm”; khi bấm mở modal riêng gồm icon, tên và số còn khả dụng trong kho. Desktop xếp item thành hai cột, mobile một cột; danh sách dài cuộn bên trong modal và không đẩy layout tab xuống.
 - Một lần chọn gán đúng một đơn vị vào vị trí đã bấm; cùng item được phép xuất hiện ở nhiều slot nếu quantity còn đủ. Slot đã có đồ cho phép thay hoặc bỏ món.
 - Khi đổi sang nhân vật có capacity thấp hơn số đồ đang chọn, không âm thầm xóa đồ. Giữ các lựa chọn ở trạng thái overflow và yêu cầu người chơi bỏ bớt trước khi xuất phát.
@@ -833,6 +836,7 @@ interface GameRun {
       sanity: number;
     };
     state: CharacterState;
+    nextExpeditionDay?: number;
     conditions: Array<{
       type: string;
       severity?: number;
