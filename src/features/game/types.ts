@@ -131,7 +131,7 @@ export interface ReturnJourneyReport {
 export interface EventChoice {
   id: string;
   label: string;
-  description: string;
+  description?: string;
   requiredItem?: {
     itemKey: string;
     quantity: number;

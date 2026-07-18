@@ -45,7 +45,10 @@ import { GameHeader } from "@/features/game/components/game-header";
 import { InventoryPanel } from "@/features/game/components/inventory-panel";
 import { ItemIcon } from "@/features/game/components/item-icon";
 import { ReturnJourneyPanel } from "@/features/game/components/return-journey-panel";
-import { MAX_EVENTS_PER_DAY } from "@/features/game/config";
+import {
+  MAX_EVENTS_PER_DAY,
+  SHOWCASE_ALL_EVENT_RARITIES,
+} from "@/features/game/config";
 import type {
   DailyTask,
   GameCharacter,
@@ -80,7 +83,9 @@ const gameNavigationTabs: GameNavigationTab[] = [
   },
 ];
 
-const dailyEvents = mockCurrentEvents.slice(0, MAX_EVENTS_PER_DAY);
+const dailyEvents = SHOWCASE_ALL_EVENT_RARITIES
+  ? mockCurrentEvents
+  : mockCurrentEvents.slice(0, MAX_EVENTS_PER_DAY);
 
 const careLabels: Record<
   CareAction,

@@ -102,13 +102,12 @@ export function CharacterCard({ character, onCare }: CharacterCardProps) {
         {canReceiveCare ? (
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             aria-expanded={showStats}
             aria-label={showStats ? "Thu gọn chỉ số" : "Mở rộng chỉ số"}
             onClick={() => setShowStats((current) => !current)}
-            className="shrink-0 bg-transparent px-2 text-zinc-400 hover:bg-white/5 aria-expanded:bg-transparent"
+            className="shrink-0 bg-transparent text-zinc-400 hover:bg-white/5 aria-expanded:bg-transparent"
           >
-            <span className="hidden sm:inline">Chỉ số</span>
             <ChevronDown
               className={cn(
                 "transition-transform duration-200",
@@ -168,21 +167,21 @@ export function CharacterCard({ character, onCare }: CharacterCardProps) {
           <CardFooter className="grid grid-cols-3 gap-2 border-t border-white/6 bg-black/10 px-4 py-3">
             <Button
               variant="ghost"
-              size="sm"
+              size="lg"
               onClick={() => onCare(character, "feed")}
             >
               <Utensils /> Ăn
             </Button>
             <Button
               variant="ghost"
-              size="sm"
+              size="lg"
               onClick={() => onCare(character, "hydrate")}
             >
               <Droplets /> Uống
             </Button>
             <Button
               variant="ghost"
-              size="sm"
+              size="lg"
               onClick={() => onCare(character, "heal")}
             >
               <HeartPulse /> Chữa trị
