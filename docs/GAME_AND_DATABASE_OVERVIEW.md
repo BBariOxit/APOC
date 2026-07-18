@@ -142,7 +142,7 @@ UI contract cho tab Thám hiểm:
 
 - Thứ tự quyết định là **Người đi → Hành trang → Xác nhận**. Có thể cùng nằm trên một màn hình; không gắn “Bước 1/2” nếu giao diện không khóa tuyến tính và người chơi có thể đổi qua lại.
 - Row nhân vật trong tab này chỉ hiện avatar/initials, tên và selected state. Condition, bốn chỉ số, role và capacity đã có ở tab Nhân vật nên không lặp lại; sức khỏe vẫn được dùng ngầm để tính slot.
-- Khu hành trang luôn render đúng bốn vị trí cố định. Các slot nằm ngoài capacity hiệu lực của nhân vật được hiển thị ở trạng thái khóa, không hiện công thức hoặc số capacity trên mặt UI. Slot khả dụng là button “Chọn vật phẩm”; khi bấm mở popover/menu gồm icon, tên, công dụng khái quát và số còn khả dụng trong kho.
+- Khu hành trang luôn render đúng bốn vị trí cố định. Các slot nằm ngoài capacity hiệu lực của nhân vật được hiển thị ở trạng thái khóa, không hiện công thức hoặc số capacity trên mặt UI. Slot khả dụng là button “Chọn vật phẩm”; khi bấm mở modal riêng gồm icon, tên và số còn khả dụng trong kho. Desktop xếp item thành hai cột, mobile một cột; danh sách dài cuộn bên trong modal và không đẩy layout tab xuống.
 - Một lần chọn gán đúng một đơn vị vào vị trí đã bấm; cùng item được phép xuất hiện ở nhiều slot nếu quantity còn đủ. Slot đã có đồ cho phép thay hoặc bỏ món.
 - Khi đổi sang nhân vật có capacity thấp hơn số đồ đang chọn, không âm thầm xóa đồ. Giữ các lựa chọn ở trạng thái overflow và yêu cầu người chơi bỏ bớt trước khi xuất phát.
 - Thanh xác nhận nên bám cuối viewport khi danh sách dài và chỉ giữ summary ngắn cùng CTA. CTA disabled phải có lý do đọc được, ví dụ “Chọn người đi” hoặc “Bỏ bớt hành trang”, thay vì chỉ đổi màu xám.
