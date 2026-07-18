@@ -40,6 +40,7 @@ import type { CareAction } from "@/features/game/components/character-card";
 import { DailyPanel } from "@/features/game/components/daily-panel";
 import { EventPanel } from "@/features/game/components/event-panel";
 import { ExpeditionPanel } from "@/features/game/components/expedition-panel";
+import { MAX_LOADOUT_SLOTS } from "@/features/game/expedition";
 import { GameHeader } from "@/features/game/components/game-header";
 import { InventoryPanel } from "@/features/game/components/inventory-panel";
 import { ItemIcon } from "@/features/game/components/item-icon";
@@ -112,7 +113,9 @@ export function GameplayScreen() {
   );
   const [selectedExpeditionCharacterId, setSelectedExpeditionCharacterId] =
     useState<string | null>(null);
-  const [selectedLoadoutIds, setSelectedLoadoutIds] = useState<string[]>([]);
+  const [selectedLoadoutIds, setSelectedLoadoutIds] = useState<
+    Array<string | null>
+  >(() => Array.from({ length: MAX_LOADOUT_SLOTS }, () => null));
   const [careRequest, setCareRequest] = useState<CareRequest | null>(null);
   const [completedCareActions, setCompletedCareActions] = useState<string[]>([]);
   const [hasUnreadReturnReport, setHasUnreadReturnReport] = useState(true);
@@ -272,7 +275,7 @@ export function GameplayScreen() {
     }
 
     toast.success(`${character.name} đã sẵn sàng xuất phát`, {
-      description: `${selectedLoadoutIds.length} món đã được chuẩn bị.`,
+      description: `${selectedLoadoutIds.filter(Boolean).length} món đã được chuẩn bị.`,
     });
   }
 

@@ -1,6 +1,7 @@
 import type { GameCharacter } from "@/features/game/types";
 
 const HEALTH_PER_LOST_LOADOUT_SLOT = 25;
+export const MAX_LOADOUT_SLOTS = 4;
 
 export function getLostLoadoutSlots(health: number) {
   const safeHealth = Math.min(100, Math.max(0, health));
@@ -16,14 +17,10 @@ export function getLoadoutSlotCapacity(character: GameCharacter) {
 }
 
 export function setLoadoutSlot(
-  loadoutItemIds: string[],
+  loadoutItemIds: Array<string | null>,
   slotIndex: number,
   itemId: string,
 ) {
-  if (slotIndex >= loadoutItemIds.length) {
-    return [...loadoutItemIds, itemId];
-  }
-
   const nextLoadoutItemIds = [...loadoutItemIds];
   nextLoadoutItemIds[slotIndex] = itemId;
 
@@ -31,8 +28,10 @@ export function setLoadoutSlot(
 }
 
 export function removeLoadoutSlot(
-  loadoutItemIds: string[],
+  loadoutItemIds: Array<string | null>,
   slotIndex: number,
 ) {
-  return loadoutItemIds.filter((_, index) => index !== slotIndex);
+  return loadoutItemIds.map((itemId, index) =>
+    index === slotIndex ? null : itemId,
+  );
 }

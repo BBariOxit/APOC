@@ -1,6 +1,5 @@
 import { Backpack, EyeOff } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,19 +11,19 @@ import { ExpeditionCharacterOption } from "@/features/game/components/expedition
 import { ExpeditionLoadoutSlot } from "@/features/game/components/expedition-loadout-slot";
 import {
   getLoadoutSlotCapacity,
+  MAX_LOADOUT_SLOTS,
   removeLoadoutSlot,
   setLoadoutSlot,
 } from "@/features/game/expedition";
 import type { GameCharacter, InventoryItem } from "@/features/game/types";
-import { cn } from "@/lib/utils";
 
 interface ExpeditionPanelProps {
   characters: GameCharacter[];
   inventory: InventoryItem[];
   selectedCharacterId: string | null;
-  selectedLoadoutIds: string[];
+  selectedLoadoutIds: Array<string | null>;
   onSelectCharacter: (characterId: string) => void;
-  onChangeLoadout: (itemIds: string[]) => void;
+  onChangeLoadout: (itemIds: Array<string | null>) => void;
   onDepart: () => void;
 }
 
@@ -54,18 +53,14 @@ export function ExpeditionPanel({
   const slotCapacity = selectedCharacter
     ? getLoadoutSlotCapacity(selectedCharacter)
     : 0;
-  const lostSlots = selectedCharacter
-    ? selectedCharacter.baseLoadoutSlots - slotCapacity
-    : 0;
-  const overflowCount = Math.max(
-    0,
-    selectedLoadoutIds.length - slotCapacity,
-  );
-  const visibleSlotCount = Math.max(
-    slotCapacity,
-    selectedLoadoutIds.length,
-  );
+  const overflowCount = selectedLoadoutIds
+    .slice(slotCapacity)
+    .filter((itemId) => itemId !== null).length;
   const selectedItemCounts = selectedLoadoutIds.reduce((counts, itemId) => {
+    if (itemId === null) {
+      return counts;
+    }
+
     counts.set(itemId, (counts.get(itemId) ?? 0) + 1);
     return counts;
   }, new Map<string, number>());
@@ -140,79 +135,42 @@ export function ExpeditionPanel({
 
         <Card className="bg-zinc-900/55 shadow-none">
           <CardHeader>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <CardTitle className="text-lg">Hành trang</CardTitle>
-                {selectedCharacter && lostSlots > 0 && (
-                  <p className="mt-1 text-xs text-amber-200/80">
-                    Giảm {lostSlots} ô do sức khỏe hiện tại.
-                  </p>
-                )}
-              </div>
-              {selectedCharacter && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "tabular-nums",
-                    overflowCount > 0
-                      ? "border-amber-300/35 bg-amber-300/10 text-amber-200"
-                      : "border-white/10 bg-white/5 text-zinc-300",
-                  )}
-                >
-                  {selectedLoadoutIds.length}/{slotCapacity} ô
-                </Badge>
-              )}
-            </div>
+            <CardTitle className="text-lg">Hành trang</CardTitle>
           </CardHeader>
           <CardContent>
-            {!selectedCharacter ? (
-              <div className="grid min-h-64 place-items-center rounded-xl border border-dashed border-white/10 px-6 text-center">
-                <div>
-                  <Backpack className="mx-auto size-5 text-zinc-500" />
-                  <p className="mt-3 text-sm font-medium text-zinc-300">
-                    Chọn một người để chuẩn bị hành trang
-                  </p>
-                </div>
-              </div>
-            ) : visibleSlotCount === 0 ? (
-              <div className="rounded-xl border border-amber-300/20 bg-amber-300/5 px-4 py-5 text-sm text-amber-100">
-                Sức khỏe hiện tại không còn ô mang đồ.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {Array.from({ length: visibleSlotCount }, (_, index) => {
-                  const itemId = selectedLoadoutIds[index];
-                  const item = loadoutItems.find(
-                    (loadoutItem) => loadoutItem.id === itemId,
-                  );
+            <div className="space-y-2">
+              {Array.from({ length: MAX_LOADOUT_SLOTS }, (_, index) => {
+                const itemId = selectedLoadoutIds[index];
+                const item = loadoutItems.find(
+                  (loadoutItem) => loadoutItem.id === itemId,
+                );
 
-                  return (
-                    <ExpeditionLoadoutSlot
-                      key={index}
-                      index={index}
-                      item={item}
-                      isOverflow={index >= slotCapacity}
-                      loadoutItems={loadoutItems}
-                      selectedItemCounts={selectedItemCounts}
-                      onSelect={(nextItemId) =>
-                        onChangeLoadout(
-                          setLoadoutSlot(
-                            selectedLoadoutIds,
-                            index,
-                            nextItemId,
-                          ),
-                        )
-                      }
-                      onRemove={() =>
-                        onChangeLoadout(
-                          removeLoadoutSlot(selectedLoadoutIds, index),
-                        )
-                      }
-                    />
-                  );
-                })}
-              </div>
-            )}
+                return (
+                  <ExpeditionLoadoutSlot
+                    key={index}
+                    index={index}
+                    item={item}
+                    isLocked={!selectedCharacter || index >= slotCapacity}
+                    loadoutItems={loadoutItems}
+                    selectedItemCounts={selectedItemCounts}
+                    onSelect={(nextItemId) =>
+                      onChangeLoadout(
+                        setLoadoutSlot(
+                          selectedLoadoutIds,
+                          index,
+                          nextItemId,
+                        ),
+                      )
+                    }
+                    onRemove={() =>
+                      onChangeLoadout(
+                        removeLoadoutSlot(selectedLoadoutIds, index),
+                      )
+                    }
+                  />
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -222,7 +180,7 @@ export function ExpeditionPanel({
           <div className="min-w-0">
             <p className="font-medium text-zinc-200">
               {selectedCharacter
-                ? `${selectedCharacter.name} · ${selectedLoadoutIds.length}/${slotCapacity} món`
+                ? selectedCharacter.name
                 : "Chưa chọn người đi"}
             </p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">

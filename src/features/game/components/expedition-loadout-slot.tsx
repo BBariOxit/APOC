@@ -1,6 +1,5 @@
-import { Check, ChevronDown, Plus, X } from "lucide-react";
+import { Check, ChevronDown, Lock, Plus, X } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +15,7 @@ import { cn } from "@/lib/utils";
 interface ExpeditionLoadoutSlotProps {
   index: number;
   item?: InventoryItem;
-  isOverflow: boolean;
+  isLocked: boolean;
   loadoutItems: InventoryItem[];
   selectedItemCounts: Map<string, number>;
   onSelect: (itemId: string) => void;
@@ -26,12 +25,21 @@ interface ExpeditionLoadoutSlotProps {
 export function ExpeditionLoadoutSlot({
   index,
   item,
-  isOverflow,
+  isLocked,
   loadoutItems,
   selectedItemCounts,
   onSelect,
   onRemove,
 }: ExpeditionLoadoutSlotProps) {
+  if (isLocked && !item) {
+    return (
+      <div className="grid min-h-20 place-items-center rounded-xl border border-dashed border-white/8 bg-black/10 text-zinc-700">
+        <Lock className="size-4" />
+        <span className="sr-only">Ô hành trang bị khóa</span>
+      </div>
+    );
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -48,7 +56,7 @@ export function ExpeditionLoadoutSlot({
               item
                 ? "border-white/10 bg-zinc-950/45 hover:bg-zinc-800/60"
                 : "border-dashed border-white/12 bg-transparent text-muted-foreground hover:border-white/25 hover:bg-white/3 hover:text-zinc-200",
-              isOverflow &&
+              isLocked &&
                 "border-amber-300/45 bg-amber-300/5 hover:bg-amber-300/10",
             )}
           />
@@ -64,20 +72,16 @@ export function ExpeditionLoadoutSlot({
                 <span className="truncate font-medium text-zinc-100">
                   {item.name}
                 </span>
-                {isOverflow && (
-                  <Badge
-                    variant="outline"
-                    className="border-amber-300/35 bg-amber-300/10 text-amber-200"
-                  >
-                    Quá giới hạn
-                  </Badge>
-                )}
               </span>
               <span className="mt-0.5 block line-clamp-1 text-xs text-muted-foreground">
                 {item.shortDescription}
               </span>
             </span>
-            <ChevronDown className="size-4 shrink-0 text-zinc-500" />
+            {isLocked ? (
+              <Lock className="size-4 shrink-0 text-amber-200/70" />
+            ) : (
+              <ChevronDown className="size-4 shrink-0 text-zinc-500" />
+            )}
           </>
         ) : (
           <>
@@ -96,7 +100,7 @@ export function ExpeditionLoadoutSlot({
         <DropdownMenuLabel className="px-2 py-1.5">
           Vật phẩm cho ô {index + 1}
         </DropdownMenuLabel>
-        {loadoutItems.map((loadoutItem) => {
+        {!isLocked && loadoutItems.map((loadoutItem) => {
           const selectedCount = selectedItemCounts.get(loadoutItem.id) ?? 0;
           const remainingCount = loadoutItem.quantity - selectedCount;
           const isCurrentItem = item?.id === loadoutItem.id;
