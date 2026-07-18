@@ -267,27 +267,94 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
   ],
 };
 
-export const mockCurrentEvent: CurrentEvent = {
-  id: "mysterious-knock",
-  title: "Tiếng gõ cửa",
-  description:
-    "Ba tiếng gõ ngắn vang lên từ phía bên kia cánh cửa. Một giọng nói khàn đặc xin đổi thông tin về khu cứu trợ lấy một chai nước sạch.",
-  category: "Gặp gỡ",
-  rarity: "rare",
-  choices: [
-    {
-      id: "trade-water",
-      label: "Đổi một chai nước",
-      description: "Mất 1 nước sạch và nghe thông tin của người lạ.",
-      requiredItemKey: "water",
-      requiredQuantity: 1,
-      variant: "primary",
-    },
-    {
-      id: "ignore",
-      label: "Giữ im lặng",
-      description: "Không tiêu hao tài nguyên, nhưng người lạ có thể không quay lại.",
-      variant: "secondary",
-    },
-  ],
-};
+export const mockCurrentEvents: CurrentEvent[] = [
+  {
+    id: "mysterious-knock",
+    title: "Tiếng gõ cửa",
+    description:
+      "Ba tiếng gõ ngắn vang lên từ phía bên kia cánh cửa. Một giọng nói khàn đặc xin đổi thông tin về khu cứu trợ lấy một chai nước sạch.",
+    category: "Gặp gỡ",
+    rarity: "rare",
+    urgency: "required",
+    day: 12,
+    location: "Cửa hầm phía Bắc",
+    choices: [
+      {
+        id: "trade-water",
+        label: "Đổi một chai nước",
+        description: "Đưa nước cho người lạ để đổi lấy thông tin về khu cứu trợ.",
+        requiredItem: {
+          itemKey: "water",
+          quantity: 1,
+          usage: "consume",
+        },
+        result: {
+          title: "Một thỏa thuận chóng vánh",
+          description:
+            "Người lạ nhận chai nước rồi để lại tần số phát sóng và vị trí của một trạm cứu trợ cũ.",
+          effects: [
+            { label: "Nước sạch −1", tone: "negative" },
+            { label: "Mở khóa: Trạm cứu trợ", tone: "neutral" },
+          ],
+        },
+      },
+      {
+        id: "ignore",
+        label: "Giữ im lặng",
+        description:
+          "Không tiêu hao tài nguyên, nhưng người lạ có thể không quay lại.",
+        result: {
+          title: "Tiếng bước chân xa dần",
+          description:
+            "Cả nhóm giữ im lặng. Sau vài phút, người bên ngoài rời khỏi cửa hầm và biến mất trong hành lang.",
+          effects: [],
+        },
+      },
+    ],
+  },
+  {
+    id: "broken-broadcast",
+    title: "Tín hiệu đứt quãng",
+    description:
+      "Một chuỗi âm thanh ngắt quãng phát ra từ góc liên lạc. Tín hiệu quá yếu để nghe rõ nếu không dùng radio dò lại tần số.",
+    category: "Tín hiệu",
+    rarity: "uncommon",
+    urgency: "optional",
+    day: 12,
+    location: "Góc liên lạc",
+    expiresAtDay: 12,
+    choices: [
+      {
+        id: "scan-radio",
+        label: "Dò tín hiệu bằng radio",
+        description:
+          "Radio chỉ được dùng để dò tần số và sẽ không bị tiêu hao.",
+        requiredItem: {
+          itemKey: "radio",
+          quantity: 1,
+          usage: "retain",
+        },
+        result: {
+          title: "Một tọa độ mới",
+          description:
+            "Nhóm bắt được một đoạn phát sóng lặp lại, trong đó có tọa độ của một trạm truyền tin bỏ hoang.",
+          effects: [
+            { label: "Radio được giữ nguyên", tone: "neutral" },
+            { label: "Mở khóa: Trạm truyền tin", tone: "positive" },
+          ],
+        },
+      },
+      {
+        id: "dismiss-signal",
+        label: "Bỏ qua tín hiệu",
+        description: "Không sử dụng vật phẩm và để tín hiệu tự biến mất.",
+        result: {
+          title: "Tín hiệu đã tắt",
+          description:
+            "Âm thanh yếu dần rồi biến mất. Nhóm quay lại những công việc còn dang dở.",
+          effects: [],
+        },
+      },
+    ],
+  },
+];

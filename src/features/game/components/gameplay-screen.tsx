@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/tabs";
 import {
   mockCharacters,
-  mockCurrentEvent,
+  mockCurrentEvents,
   mockDailyUpdates,
   mockInventory,
   mockReturnJourney,
@@ -101,7 +101,9 @@ const careLabels: Record<
 
 export function GameplayScreen() {
   const [activeTab, setActiveTab] = useState<GameTab>("daily");
-  const [resolvedChoiceId, setResolvedChoiceId] = useState<string | null>(null);
+  const [resolvedEventChoices, setResolvedEventChoices] = useState<
+    Record<string, string>
+  >({});
   const [selectedItemId, setSelectedItemId] = useState<string | null>(
     mockInventory[0]?.id ?? null,
   );
@@ -120,6 +122,29 @@ export function GameplayScreen() {
   const aliveCount = mockCharacters.filter(
     (character) => character.state !== "dead",
   ).length;
+  const unresolvedEvents = useMemo(
+    () =>
+      mockCurrentEvents.filter((event) => !resolvedEventChoices[event.id]),
+    [resolvedEventChoices],
+  );
+  const requiredPendingEvents = useMemo(
+    () => unresolvedEvents.filter((event) => event.urgency === "required"),
+    [unresolvedEvents],
+  );
+  const pendingEventItemKeys = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          unresolvedEvents.flatMap((event) =>
+            event.choices.flatMap((choice) =>
+              choice.requiredItem ? [choice.requiredItem.itemKey] : [],
+            ),
+          ),
+        ),
+      ),
+    [unresolvedEvents],
+  );
+  const canEndDay = requiredPendingEvents.length === 0;
   const careItems = useMemo(() => {
     if (!careRequest) {
       return [];
@@ -135,13 +160,20 @@ export function GameplayScreen() {
   const dailyTasks = useMemo<DailyTask[]>(() => {
     const tasks: DailyTask[] = [];
 
-    if (resolvedChoiceId === null) {
+    if (requiredPendingEvents.length > 0) {
+      const [firstRequiredEvent] = requiredPendingEvents;
+
       tasks.push({
         id: "pending-event",
         type: "event",
-        title: "Tiếng gõ cửa",
+        title:
+          requiredPendingEvents.length === 1
+            ? firstRequiredEvent.title
+            : `${requiredPendingEvents.length} sự kiện bắt buộc`,
         description:
-          "Sự kiện bắt buộc phải được giải quyết trước khi qua ngày.",
+          requiredPendingEvents.length === 1
+            ? "Sự kiện này phải được giải quyết trước khi qua ngày."
+            : "Các sự kiện này phải được giải quyết trước khi qua ngày.",
         actionLabel: "Xử lý",
         destination: "event",
       });
@@ -172,7 +204,7 @@ export function GameplayScreen() {
     }
 
     return tasks;
-  }, [completedCareActions, resolvedChoiceId]);
+  }, [completedCareActions, requiredPendingEvents]);
 
   function handleNavigate(tab: GameTab) {
     setActiveTab(tab);
@@ -182,10 +214,13 @@ export function GameplayScreen() {
     }
   }
 
-  function handleResolveEvent(choiceId: string) {
-    setResolvedChoiceId(choiceId);
+  function handleResolveEvent(eventId: string, choiceId: string) {
+    setResolvedEventChoices((current) => ({
+      ...current,
+      [eventId]: choiceId,
+    }));
     toast.success("Lựa chọn đã được lưu", {
-      description: "Kết quả có thể ảnh hưởng đến những ngày tiếp theo.",
+      description: "Kết quả đã được áp dụng và ghi vào nhật ký.",
     });
   }
 
@@ -267,7 +302,8 @@ export function GameplayScreen() {
       <GameHeader
         day={12}
         aliveCount={aliveCount}
-        canEndDay={resolvedChoiceId !== null}
+        canEndDay={canEndDay}
+        pendingEventCount={unresolvedEvents.length}
         onEndDay={() =>
           toast.success("Ngày 12 đã hoàn tất", {
             description: "Game engine sẽ tạo diễn biến cho ngày tiếp theo.",
@@ -301,8 +337,10 @@ export function GameplayScreen() {
                       }`}
                     >
                       <Icon /> {tab.label}
-                      {tab.value === "event" && resolvedChoiceId === null && (
-                        <span className="size-1.5 rounded-full bg-amber-300" />
+                      {tab.value === "event" && unresolvedEvents.length > 0 && (
+                        <span className="grid min-w-4 place-items-center rounded-full bg-amber-300/15 px-1 font-mono text-[10px] leading-4 text-amber-200">
+                          {unresolvedEvents.length}
+                        </span>
                       )}
                       {tab.value === "journey" && hasUnreadReturnReport && (
                         <span className="size-1.5 rounded-full bg-emerald-300" />
@@ -338,10 +376,11 @@ export function GameplayScreen() {
               )}
               <TabsContent value="event">
                 <EventPanel
-                  event={mockCurrentEvent}
+                  events={mockCurrentEvents}
                   inventory={mockInventory}
-                  resolvedChoiceId={resolvedChoiceId}
+                  resolvedChoices={resolvedEventChoices}
                   onResolve={handleResolveEvent}
+                  onFinish={() => handleNavigate("daily")}
                 />
               </TabsContent>
               <TabsContent value="characters">
@@ -365,9 +404,7 @@ export function GameplayScreen() {
                 <InventoryPanel
                   items={mockInventory}
                   selectedItemId={selectedItemId}
-                  highlightedItemKeys={
-                    resolvedChoiceId === null ? ["water"] : []
-                  }
+                  highlightedItemKeys={pendingEventItemKeys}
                   onSelectItem={setSelectedItemId}
                   onUseItem={handleUseInventoryItem}
                 />
@@ -378,9 +415,7 @@ export function GameplayScreen() {
               <InventoryPanel
                 items={mockInventory}
                 selectedItemId={selectedItemId}
-                highlightedItemKeys={
-                  resolvedChoiceId === null ? ["water"] : []
-                }
+                highlightedItemKeys={pendingEventItemKeys}
                 onSelectItem={setSelectedItemId}
                 onUseItem={handleUseInventoryItem}
                 className="max-h-[calc(100vh-5.75rem)]"
@@ -394,10 +429,10 @@ export function GameplayScreen() {
         <Button
           size="lg"
           className="w-full"
-          disabled={resolvedChoiceId === null}
+          disabled={!canEndDay}
           title={
-            resolvedChoiceId === null
-              ? "Hãy giải quyết sự kiện trước"
+            !canEndDay
+              ? "Hãy giải quyết sự kiện bắt buộc trước"
               : "Kết thúc ngày hiện tại"
           }
           onClick={() =>
