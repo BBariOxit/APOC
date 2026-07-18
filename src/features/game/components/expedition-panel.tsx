@@ -147,7 +147,7 @@ export function ExpeditionPanel({
 
                 return (
                   <ExpeditionLoadoutSlot
-                    key={index}
+                    key={`${selectedCharacterId ?? "none"}-${index}`}
                     index={index}
                     item={item}
                     isLocked={!selectedCharacter || index >= slotCapacity}

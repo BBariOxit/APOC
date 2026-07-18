@@ -1,13 +1,8 @@
-import { Check, ChevronDown, Lock, Plus, X } from "lucide-react";
+"use client";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Check, ChevronDown, Lock, Plus, X } from "lucide-react";
+import { useId, useState } from "react";
+
 import { ItemIcon } from "@/features/game/components/item-icon";
 import type { InventoryItem } from "@/features/game/types";
 import { cn } from "@/lib/utils";
@@ -31,6 +26,9 @@ export function ExpeditionLoadoutSlot({
   onSelect,
   onRemove,
 }: ExpeditionLoadoutSlotProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const listId = useId();
+
   if (isLocked && !item) {
     return (
       <div className="grid min-h-20 place-items-center rounded-xl border border-dashed border-white/8 bg-black/10 text-zinc-700">
@@ -41,26 +39,25 @@ export function ExpeditionLoadoutSlot({
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <button
-            type="button"
-            aria-label={
-              item
-                ? `Thay vật phẩm ${item.name} ở ô ${index + 1}`
-                : `Chọn vật phẩm cho ô ${index + 1}`
-            }
-            className={cn(
-              "flex min-h-20 w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              item
-                ? "border-white/10 bg-zinc-950/45 hover:bg-zinc-800/60"
-                : "border-dashed border-white/12 bg-transparent text-muted-foreground hover:border-white/25 hover:bg-white/3 hover:text-zinc-200",
-              isLocked &&
-                "border-amber-300/45 bg-amber-300/5 hover:bg-amber-300/10",
-            )}
-          />
+    <div>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        aria-controls={listId}
+        aria-label={
+          item
+            ? `Thay vật phẩm ${item.name} ở ô ${index + 1}`
+            : `Chọn vật phẩm cho ô ${index + 1}`
         }
+        onClick={() => setIsOpen((current) => !current)}
+        className={cn(
+          "flex min-h-20 w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          item
+            ? "border-white/10 bg-zinc-950/45 hover:bg-zinc-800/60"
+            : "border-dashed border-white/12 bg-transparent text-muted-foreground hover:border-white/25 hover:bg-white/3 hover:text-zinc-200",
+          isOpen && "border-zinc-500 bg-zinc-800/55",
+          isLocked && "border-amber-300/45 bg-amber-300/5",
+        )}
       >
         {item ? (
           <>
@@ -68,20 +65,13 @@ export function ExpeditionLoadoutSlot({
               <ItemIcon icon={item.icon} className="size-4" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-2">
-                <span className="truncate font-medium text-zinc-100">
-                  {item.name}
-                </span>
+              <span className="block truncate font-medium text-zinc-100">
+                {item.name}
               </span>
               <span className="mt-0.5 block line-clamp-1 text-xs text-muted-foreground">
                 {item.shortDescription}
               </span>
             </span>
-            {isLocked ? (
-              <Lock className="size-4 shrink-0 text-amber-200/70" />
-            ) : (
-              <ChevronDown className="size-4 shrink-0 text-zinc-500" />
-            )}
           </>
         ) : (
           <>
@@ -91,59 +81,79 @@ export function ExpeditionLoadoutSlot({
             <span className="font-medium">Chọn vật phẩm</span>
           </>
         )}
-      </DropdownMenuTrigger>
 
-      <DropdownMenuContent
-        align="start"
-        className="w-80 max-w-[calc(100vw-2rem)] p-1.5"
-      >
-        <DropdownMenuLabel className="px-2 py-1.5">
-          Vật phẩm cho ô {index + 1}
-        </DropdownMenuLabel>
-        {!isLocked && loadoutItems.map((loadoutItem) => {
-          const selectedCount = selectedItemCounts.get(loadoutItem.id) ?? 0;
-          const remainingCount = loadoutItem.quantity - selectedCount;
-          const isCurrentItem = item?.id === loadoutItem.id;
-          const isUnavailable = remainingCount <= 0 && !isCurrentItem;
-
-          return (
-            <DropdownMenuItem
-              key={loadoutItem.id}
-              disabled={isUnavailable}
-              className="gap-3 px-2 py-2.5"
-              onClick={() => onSelect(loadoutItem.id)}
-            >
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/6 text-zinc-300">
-                <ItemIcon icon={loadoutItem.icon} className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">
-                  {loadoutItem.name}
-                </span>
-                <span className="mt-0.5 block line-clamp-1 text-xs text-muted-foreground">
-                  {loadoutItem.shortDescription}
-                </span>
-              </span>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {isCurrentItem ? (
-                  <Check className="size-4 text-zinc-200" />
-                ) : (
-                  `Còn ${Math.max(0, remainingCount)}`
-                )}
-              </span>
-            </DropdownMenuItem>
-          );
-        })}
-
-        {item && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" onClick={onRemove}>
-              <X /> Bỏ khỏi ô này
-            </DropdownMenuItem>
-          </>
+        {isLocked ? (
+          <Lock className="ml-auto size-4 shrink-0 text-amber-200/70" />
+        ) : (
+          <ChevronDown
+            className={cn(
+              "ml-auto size-4 shrink-0 text-zinc-500 transition-transform",
+              isOpen && "rotate-180",
+            )}
+          />
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </button>
+
+      {isOpen && (
+        <div
+          id={listId}
+          className="mt-2 space-y-1 rounded-xl border border-white/10 bg-zinc-950/90 p-1.5 shadow-lg"
+        >
+          {!isLocked &&
+            loadoutItems.map((loadoutItem) => {
+              const selectedCount =
+                selectedItemCounts.get(loadoutItem.id) ?? 0;
+              const remainingCount = loadoutItem.quantity - selectedCount;
+              const isCurrentItem = item?.id === loadoutItem.id;
+              const isUnavailable = remainingCount <= 0 && !isCurrentItem;
+
+              return (
+                <button
+                  key={loadoutItem.id}
+                  type="button"
+                  disabled={isUnavailable}
+                  onClick={() => {
+                    onSelect(loadoutItem.id);
+                    setIsOpen(false);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-zinc-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+                >
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/6 text-zinc-300">
+                    <ItemIcon icon={loadoutItem.icon} className="size-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">
+                      {loadoutItem.name}
+                    </span>
+                    <span className="mt-0.5 block line-clamp-1 text-xs text-muted-foreground">
+                      {loadoutItem.shortDescription}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {isCurrentItem ? (
+                      <Check className="size-4 text-zinc-200" />
+                    ) : (
+                      `Còn ${Math.max(0, remainingCount)}`
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+
+          {item && (
+            <button
+              type="button"
+              onClick={() => {
+                onRemove();
+                setIsOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg border-t border-white/8 px-2 py-2.5 text-left text-rose-300 transition-colors hover:bg-rose-300/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="size-4" /> Bỏ khỏi ô này
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
