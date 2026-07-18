@@ -114,7 +114,7 @@ UI luôn hiện tên rarity bằng text, không chỉ dựa vào màu. Queue car
 
 ### 2.5. Thám hiểm, địa điểm và nhật ký hành trình
 
-Thám hiểm là subsystem nhiều ngày được server tự resolve trong khi nhân vật ở bên ngoài. Người chơi chỉ biết nhân vật nào đã rời hầm; không nhận máu, khát, item, vị trí hay event theo thời gian thực. Toàn bộ hành trình chỉ được công bố khi nhân vật trở về hoặc khi một event khác xác nhận số phận của họ.
+Thám hiểm là subsystem nhiều ngày được server tự resolve trong khi nhân vật ở bên ngoài. Người chơi chỉ phái một nhân vật đi và chuẩn bị hành trang; không chọn trước địa điểm. Route, địa điểm và location event được server xác định trong lúc chuyến đi diễn ra. Người chơi được xem lại người đi và hành trang ban đầu nhưng không nhận chỉ số hiện tại, vị trí hiện tại, carried inventory còn lại hay event theo thời gian thực. Toàn bộ diễn biến chỉ được công bố khi nhân vật trở về hoặc khi một event khác xác nhận số phận của họ.
 
 Cần phân biệt ba khái niệm:
 
@@ -125,6 +125,28 @@ Cần phân biệt ba khái niệm:
 Mỗi địa điểm có một pool tham chiếu đến nhiều location event; không tạo thêm content type “expedition event”. Pool có thể weighted-random event nào xảy ra, nhưng event đã được chọn sẽ chạy kịch bản deterministic do admin setup. Random bên trong event chỉ xảy ra ở đúng item branch/result đã khai báo `weighted`.
 
 Với event xảy ra khi nhân vật đang ở ngoài, server match carried item vào `itemBranches` theo `priority` do admin cấu hình; không random chọn một item để dùng. Nếu không có item branch nào match thì chạy `noItemBranch`. Nhật ký phải ghi event key, item branch đã match, resolution/result thực tế và effect diff để giải thích mọi thay đổi.
+
+Hành trang là một quyết định chiến lược trước chuyến đi, không phải danh sách gợi ý đồ “đúng”. Việc sở hữu đúng vật phẩm trong một location event có thể mở cách xử lý an toàn hơn, ngăn hoặc giảm tổn thất, bảo toàn nhân vật/vật phẩm, mở thêm loot hoặc giúp thoát khỏi một tình huống nguy hiểm. Mang vật phẩm không tự động tiêu hao vật phẩm đó; chỉ effect của item branch đã resolve mới được giữ nguyên, tiêu hao, làm hỏng hoặc làm mất nó.
+
+Contract khi chuẩn bị chuyến đi:
+
+- Người chơi chọn một nhân vật ở `shelter` và số lượng vật phẩm cụ thể cho hành trang. UI không yêu cầu hoặc ngầm cho phép chọn địa điểm, vì đích đến là thông tin được resolve ngẫu nhiên trong chuyến đi.
+- Toàn bộ số lượng đã chọn được chuyển atomically khỏi shelter inventory sang `carriedInventory`. UI phải phân biệt rõ “mang 1” với “có 4 trong kho”; checkbox theo item id không được ngầm hiểu là mang cả stack.
+- Mỗi đơn vị vật phẩm chiếm một slot. Nhân vật người bố có `baseLoadoutSlots = 4`; người mẹ, con trai và con gái có `baseLoadoutSlots = 3`. Capacity hiệu lực lúc xuất phát được tính bằng `max(0, baseLoadoutSlots - floor((100 - health) / 25))`, với `health` được clamp trong khoảng 0–100. Ví dụ người bố có 78 sức khỏe vẫn mang được 4 món, xuống 75 còn 3; nhân vật base 3 ở 75 sức khỏe còn 2 slot.
+- Capacity được snapshot khi server chấp nhận lệnh xuất phát. Sức khỏe tụt trong lúc đang ở ngoài không tự làm rơi vật phẩm hoặc giảm hồi tố số slot của chuyến đang chạy; chỉ event effect cụ thể mới có thể làm mất/hỏng đồ. Capacity mới được tính lại cho chuyến kế tiếp.
+- Trước khi xuất phát, UI không liệt kê địa điểm có thể roll, event, item branch, kết quả, tỷ lệ hay cam kết loot. UI chỉ được hiện công dụng khái quát của vật phẩm, số lượng đang mang/còn trong kho, slot capacity và hậu quả chắc chắn là vật phẩm tạm rời kho.
+- Không đánh dấu vật phẩm là “khuyên dùng” bằng logic biết trước event sắp roll. Người chơi tự suy luận từ lịch sử các chuyến trước và mô tả công dụng. Nếu sau này có hệ thống scout/intel, chỉ dữ liệu đã được gameplay mở khóa mới được dùng làm gợi ý.
+- Confirmation cuối phải tóm tắt người đi, tình trạng hiện tại, hành trang và dung lượng đã dùng. Server revalidate character, inventory quantity và capacity trong cùng mutation trước khi tạo expedition.
+
+UI contract cho tab Thám hiểm:
+
+- Thứ tự quyết định là **Người đi → Hành trang → Xác nhận**. Có thể cùng nằm trên một màn hình; không gắn “Bước 1/2” nếu giao diện không khóa tuyến tính và người chơi có thể đổi qua lại.
+- Row nhân vật không dùng một điểm “Thể trạng” trung bình vì có thể che mất một chỉ số đang nguy cấp. Hiện bốn chỉ số ở dạng số compact cùng condition hiện tại; chỉ số dưới ngưỡng cảnh báo dùng đỏ. Role/trait chỉ xuất hiện nếu thật sự tác động tới event hoặc khả năng mang đồ và có mô tả cơ chế đọc được.
+- Khu hành trang render đúng số slot hiệu lực của nhân vật đã chọn. Slot trống là button “Chọn vật phẩm”; khi bấm mở popover/menu gồm icon, tên, công dụng khái quát và số còn khả dụng trong kho. Một lần chọn gán đúng một đơn vị vào slot; cùng item được phép xuất hiện ở nhiều slot nếu quantity còn đủ. Slot đã có đồ cho phép thay hoặc bỏ món.
+- Header hành trang luôn hiện `đã dùng / capacity`. Nếu sức khỏe làm giảm capacity, UI giải thích ngắn ngay tại đây, ví dụ `3/4 ô · -1 do sức khỏe`, thay vì buộc người chơi tự nhớ công thức.
+- Khi đổi sang nhân vật có capacity thấp hơn số đồ đang chọn, không âm thầm xóa đồ. Giữ các lựa chọn ở trạng thái overflow và yêu cầu người chơi bỏ bớt trước khi xuất phát.
+- Thanh xác nhận nên bám cuối viewport khi danh sách dài và chỉ giữ summary ngắn cùng CTA. CTA disabled phải có lý do đọc được, ví dụ “Chọn người đi” hoặc “Bỏ bớt hành trang”, thay vì chỉ đổi màu xám.
+- Khi đã có active expedition, card trạng thái được tách khỏi form chuẩn bị. Nó được phép nhắc lại kế hoạch ban đầu nhưng không hiển thị dữ liệu runtime ẩn; nếu game chỉ cho một chuyến active thì thay form bằng trạng thái và điều kiện có thể cử chuyến tiếp theo.
 
 Khi nhân vật trở về:
 
@@ -908,6 +930,7 @@ interface RunExpedition {
   contentVersionId: ObjectId;
   expeditionId: string;
   characterKey: string;
+  loadoutSlotCapacity: number;
   status: "active" | "returned" | "missing" | "dead";
   departedDay: number;
   returnedDay?: number;
@@ -971,7 +994,9 @@ Indexes:
 
 Invariant:
 
-- Client load active expedition chỉ nhận identity/status tối thiểu; API phải project bỏ `currentLocationKey`, `carriedInventory`, `journalEntries` và mọi scripted result chưa công bố.
+- Client load active expedition được nhận `characterKey`, `departedDay`, `loadoutSlotCapacity` và `initialLoadout` vì đây là kế hoạch người chơi đã biết; API phải project bỏ `currentLocationKey`, `carriedInventory`, `journalEntries` và mọi scripted result chưa công bố.
+- Khi khởi hành, server phải kiểm tra nhân vật đang ở shelter, từng quantity còn trong kho và tổng loadout không vượt capacity tính từ health hiện tại; sau đó snapshot `loadoutSlotCapacity`, chuyển inventory và tạo expedition atomically.
+- Vật phẩm chỉ rời `carriedInventory` khi một effect đã resolve làm tiêu hao, làm hỏng, đánh mất hoặc chuyển nó; việc match `itemBranch` tự nó không đồng nghĩa consumption.
 - `summary` là read model được tính từ initial state + applied effects, không phải nguồn sự thật để áp dụng reward lần nữa.
 - Khi trở về, chuyển carried inventory, update character/location state, append audit log và đổi report sang `available` trong cùng transaction.
 - Nếu nhân vật chết bên ngoài, `status: "dead"` là state nội bộ; người trong hầm có thể vẫn thấy `missing` cho tới khi một event xác nhận và report được công bố.

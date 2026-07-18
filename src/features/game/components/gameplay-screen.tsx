@@ -262,14 +262,6 @@ export function GameplayScreen() {
     });
   }
 
-  function handleToggleLoadout(itemId: string, checked: boolean) {
-    setSelectedLoadoutIds((current) =>
-      checked
-        ? Array.from(new Set([...current, itemId]))
-        : current.filter((id) => id !== itemId),
-    );
-  }
-
   function handleDepart() {
     const character = mockCharacters.find(
       (item) => item.id === selectedExpeditionCharacterId,
@@ -280,7 +272,7 @@ export function GameplayScreen() {
     }
 
     toast.success(`${character.name} đã sẵn sàng xuất phát`, {
-      description: `${selectedLoadoutIds.length} loại vật tư đã được chọn.`,
+      description: `${selectedLoadoutIds.length} món đã được chuẩn bị.`,
     });
   }
 
@@ -395,7 +387,7 @@ export function GameplayScreen() {
                   selectedCharacterId={selectedExpeditionCharacterId}
                   selectedLoadoutIds={selectedLoadoutIds}
                   onSelectCharacter={setSelectedExpeditionCharacterId}
-                  onToggleLoadout={handleToggleLoadout}
+                  onChangeLoadout={setSelectedLoadoutIds}
                   onDepart={handleDepart}
                 />
               </TabsContent>

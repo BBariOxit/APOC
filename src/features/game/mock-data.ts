@@ -12,6 +12,7 @@ export const mockCharacters: GameCharacter[] = [
     name: "Minh",
     initials: "MI",
     role: "Trụ cột",
+    baseLoadoutSlots: 4,
     state: "shelter",
     stats: { health: 78, satiety: 61, hydration: 34, sanity: 72 },
     conditions: [{ label: "Đang khát", tone: "warning" }],
@@ -21,6 +22,7 @@ export const mockCharacters: GameCharacter[] = [
     name: "Lan",
     initials: "LA",
     role: "Y tế",
+    baseLoadoutSlots: 3,
     state: "shelter",
     stats: { health: 48, satiety: 53, hydration: 67, sanity: 58 },
     conditions: [
@@ -33,6 +35,7 @@ export const mockCharacters: GameCharacter[] = [
     name: "Hùng",
     initials: "HU",
     role: "Thám hiểm",
+    baseLoadoutSlots: 3,
     state: "shelter",
     stats: { health: 71, satiety: 38, hydration: 24, sanity: 63 },
     conditions: [
@@ -45,6 +48,7 @@ export const mockCharacters: GameCharacter[] = [
     name: "An",
     initials: "AN",
     role: "Kỹ thuật",
+    baseLoadoutSlots: 3,
     state: "shelter",
     stats: { health: 69, satiety: 42, hydration: 55, sanity: 39 },
     conditions: [{ label: "Lo âu", tone: "warning" }],

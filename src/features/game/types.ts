@@ -36,6 +36,7 @@ export interface GameCharacter {
   name: string;
   initials: string;
   role: string;
+  baseLoadoutSlots: number;
   state: CharacterState;
   stats: CharacterStats;
   conditions: CharacterCondition[];
