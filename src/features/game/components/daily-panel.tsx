@@ -263,10 +263,7 @@ function UpdateRow({ update, withDivider, onNavigate }: UpdateRowProps) {
             {update.label}
           </p>
         )}
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
-          <h3 className="font-medium">{update.title}</h3>
-          <time className="text-xs text-muted-foreground">{update.time}</time>
-        </div>
+        <h3 className="font-medium">{update.title}</h3>
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
           {update.description}
         </p>
