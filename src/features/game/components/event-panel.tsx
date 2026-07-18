@@ -5,8 +5,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Circle,
-  CircleAlert,
-  Clock3,
   LockKeyhole,
   MessageSquareText,
 } from "lucide-react";
@@ -45,13 +43,58 @@ const effectStyles: Record<GameEffect["tone"], string> = {
   neutral: "border-sky-300/20 bg-sky-300/10 text-sky-200",
 };
 
-const itemUsageLabels: Record<
-  NonNullable<EventChoice["requiredItem"]>["usage"],
-  string
+const rarityStyles: Record<
+  CurrentEvent["rarity"],
+  {
+    label: string;
+    accent: string;
+    badge: string;
+    icon: string;
+    queueActive: string;
+    shell: string;
+    text: string;
+  }
 > = {
-  consume: "Sẽ tiêu hao",
-  retain: "Không tiêu hao",
-  risk: "Có thể bị mất",
+  common: {
+    label: "Thường",
+    accent: "bg-zinc-500/60",
+    badge: "border-white/10 bg-white/5 text-zinc-400",
+    icon: "bg-white/5 text-zinc-400",
+    queueActive: "border-zinc-500 bg-zinc-800/70",
+    shell: "border-white/8 bg-zinc-900/65",
+    text: "text-zinc-400",
+  },
+  uncommon: {
+    label: "Ít gặp",
+    accent: "bg-gradient-to-r from-sky-300/80 via-sky-400/35 to-transparent",
+    badge: "border-sky-300/20 bg-sky-300/10 text-sky-200",
+    icon: "bg-sky-300/10 text-sky-200",
+    queueActive: "border-sky-300/30 bg-sky-300/5",
+    shell: "border-sky-300/15 bg-sky-950/10",
+    text: "text-sky-200/80",
+  },
+  rare: {
+    label: "Hiếm",
+    accent:
+      "bg-gradient-to-r from-violet-300/90 via-violet-400/40 to-transparent",
+    badge: "border-violet-300/20 bg-violet-300/10 text-violet-200",
+    icon: "bg-violet-300/10 text-violet-200",
+    queueActive: "border-violet-300/35 bg-violet-300/5",
+    shell:
+      "border-violet-300/20 bg-violet-950/10 shadow-[0_0_32px_rgba(139,92,246,0.05)]",
+    text: "text-violet-200/85",
+  },
+  ultra_rare: {
+    label: "Cực hiếm",
+    accent:
+      "bg-gradient-to-r from-amber-200 via-amber-400/60 to-transparent",
+    badge: "border-amber-200/25 bg-amber-300/10 text-amber-100",
+    icon: "bg-amber-300/10 text-amber-100",
+    queueActive: "border-amber-200/40 bg-amber-300/5",
+    shell:
+      "border-amber-200/25 bg-amber-950/10 shadow-[0_0_40px_rgba(251,191,36,0.08)]",
+    text: "text-amber-100/90",
+  },
 };
 
 function getAvailableQuantity(
@@ -75,30 +118,20 @@ function EventQueue({
   onSelect: (eventId: string) => void;
 }) {
   const pendingEvents = events.filter((event) => !resolvedChoices[event.id]);
-  const requiredCount = pendingEvents.filter(
-    (event) => event.urgency === "required",
-  ).length;
 
   return (
     <section aria-labelledby="event-queue-heading" className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="event-queue-heading" className="text-sm font-medium">
-          {pendingEvents.length > 0
-            ? `${pendingEvents.length} sự kiện chờ xử lý`
-            : "Đã xử lý mọi sự kiện"}
-        </h2>
-        {requiredCount > 0 && (
-          <span className="flex items-center gap-1.5 text-xs text-amber-200/80">
-            <CircleAlert className="size-3.5" />
-            {requiredCount} bắt buộc
-          </span>
-        )}
-      </div>
+      <h2 id="event-queue-heading" className="text-sm font-medium">
+        {pendingEvents.length > 0
+          ? `${pendingEvents.length} sự kiện chờ xử lý`
+          : "Đã xử lý mọi sự kiện"}
+      </h2>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {events.map((event) => {
           const isActive = event.id === activeEventId;
           const isResolved = Boolean(resolvedChoices[event.id]);
+          const rarity = rarityStyles[event.rarity];
 
           return (
             <button
@@ -109,7 +142,7 @@ function EventQueue({
               className={cn(
                 "flex min-w-0 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
                 isActive
-                  ? "border-zinc-500 bg-zinc-800/70"
+                  ? rarity.queueActive
                   : "border-white/8 bg-zinc-900/40 hover:border-white/15 hover:bg-zinc-900/70",
               )}
             >
@@ -118,9 +151,7 @@ function EventQueue({
                   "grid size-8 shrink-0 place-items-center rounded-lg",
                   isResolved
                     ? "bg-emerald-300/10 text-emerald-200"
-                    : event.urgency === "required"
-                      ? "bg-amber-300/10 text-amber-200"
-                      : "bg-white/5 text-muted-foreground",
+                    : rarity.icon,
                 )}
               >
                 {isResolved ? (
@@ -136,14 +167,15 @@ function EventQueue({
                 <span className="mt-0.5 block truncate text-xs text-muted-foreground">
                   {isResolved
                     ? "Đã xử lý"
-                    : event.urgency === "required"
-                      ? "Bắt buộc"
-                      : "Tùy chọn"}
-                  {event.expiresAtDay
-                    ? ` · Hết hạn ngày ${event.expiresAtDay}`
-                    : ""}
+                    : event.location}
                 </span>
               </span>
+              <Badge
+                variant="outline"
+                className={cn("shrink-0 px-1.5 font-normal", rarity.badge)}
+              >
+                {rarity.label}
+              </Badge>
               <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
             </button>
           );
@@ -214,9 +246,6 @@ function ChoiceCard({
                 {item && <ItemIcon icon={item.icon} className="size-3.5" />}
                 {item?.shortName ?? "Vật phẩm"} x{requirement.quantity}
               </Badge>
-              <span className="text-xs text-muted-foreground">
-                {itemUsageLabels[requirement.usage]}
-              </span>
             </span>
           )}
 
@@ -331,6 +360,7 @@ export function EventPanel({
   const hasNextEvent = pendingEvents.some(
     (event) => event.id !== activeEvent.id,
   );
+  const activeRarity = rarityStyles[activeEvent.rarity];
 
   function handleSelectEvent(eventId: string) {
     setActiveEventId(eventId);
@@ -374,35 +404,18 @@ export function EventPanel({
           onContinue={handleContinue}
         />
       ) : (
-        <Card className="overflow-hidden border-white/8 bg-zinc-900/65 py-0 shadow-none">
-          <div
-            className={cn(
-              "h-0.5",
-              activeEvent.urgency === "required"
-                ? "bg-amber-300/70"
-                : "bg-zinc-500/60",
-            )}
-          />
+        <Card
+          className={cn(
+            "overflow-hidden py-0 transition-colors",
+            activeRarity.shell,
+          )}
+        >
+          <div className={cn("h-0.5", activeRarity.accent)} />
           <CardHeader className="px-5 pb-5 pt-6 sm:px-6">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
               <span>{activeEvent.category}</span>
               <span aria-hidden="true">·</span>
-              <span
-                className={cn(
-                  activeEvent.urgency === "required" && "text-amber-200/80",
-                )}
-              >
-                {activeEvent.urgency === "required" ? "Bắt buộc" : "Tùy chọn"}
-              </span>
-              {activeEvent.expiresAtDay && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span className="flex items-center gap-1 normal-case tracking-normal text-amber-200/75">
-                    <Clock3 className="size-3.5" />
-                    Hết hạn cuối ngày
-                  </span>
-                </>
-              )}
+              <span className={activeRarity.text}>{activeRarity.label}</span>
             </div>
             <CardTitle className="mt-2 text-2xl tracking-tight sm:text-3xl">
               {activeEvent.title}
@@ -418,9 +431,6 @@ export function EventPanel({
             </p>
 
             <div className="space-y-3 border-t border-white/8 pt-5">
-              <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                Bạn sẽ làm gì?
-              </p>
               {activeEvent.choices.map((choice) => (
                 <ChoiceCard
                   key={choice.id}
@@ -432,19 +442,16 @@ export function EventPanel({
               ))}
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-white/8 pt-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-muted-foreground">
-                Không thể thay đổi sau khi xác nhận.
-              </p>
+            <div className="flex justify-end border-t border-white/8 pt-5">
               <Button
                 disabled={!selectedChoiceId}
                 onClick={() =>
                   selectedChoiceId &&
                   onResolve(activeEvent.id, selectedChoiceId)
                 }
-                className="sm:min-w-44"
+                className="min-w-32"
               >
-                Xác nhận lựa chọn
+                Xác nhận
                 <ChevronRight />
               </Button>
             </div>

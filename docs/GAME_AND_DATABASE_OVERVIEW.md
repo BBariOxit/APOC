@@ -37,7 +37,7 @@ Phân phối tài nguyên / chuẩn bị hành động
         ↓
 Server xử lý hao hụt và trạng thái theo ngày
         ↓
-Chọn event bắt buộc, event đã lên lịch hoặc event random hợp lệ
+Xếp event đã lên lịch và event random hợp lệ vào hàng chờ
         ↓
 Người chơi đưa ra lựa chọn
         ↓
@@ -82,15 +82,20 @@ Với choice dùng item, ba ý nghĩa phải tách riêng:
 
 Vì vậy “dùng radio để nghe tín hiệu và nhận bản đồ” có thể giữ nguyên radio rồi `add_item` bản đồ; “đưa một chai nước” dùng `remove_item`; còn “dùng rìu phá cửa” chạy đúng branch của rìu mà admin đã setup. Branch là deterministic mặc định. Chỉ branch khai báo `resolution.mode: "weighted"` mới dùng RNG, ví dụ 50% rìu bị mất và 50% rìu được giữ. Server luôn revalidate requirement tại lúc submit, không tin trạng thái item mà client hiển thị.
 
-Mỗi event bắt buộc phải có đường thoát hợp lệ. Interaction `choices` dùng một choice `fallbackOnly` hoặc một choice không requirement như “Bỏ qua”. Interaction `item_selection` luôn có `noItemBranch` như “Không dùng vật phẩm” hoặc “Không thể làm gì”. Nhánh này vẫn resolve event và áp dụng hậu quả/queue nhánh tiếp theo; không để `currentEvent` khóa ván vô hạn chỉ vì người chơi không có item.
+Mọi event đã được đưa vào hàng chờ đều phải được resolve trước khi sang ngày; domain và UI không chia event thành “bắt buộc” hay “tùy chọn”. “Bỏ qua”, “Giữ im lặng” hoặc “Không dùng vật phẩm” là một choice hợp lệ có outcome riêng, không phải bỏ qua việc xử lý event.
+
+Mỗi ngày tạo từ một đến ba event và không bao giờ đưa event thứ tư vào hàng chờ. Phân bố khởi điểm đề xuất là 65% ngày có một event, 30% có hai event và 5% có ba event; difficulty hoặc phase của ván có thể thay đổi phân bố này. Event cố định/chained/đã lên lịch được xếp trước, sau đó event random mới lấp các slot còn lại. Nếu chained event làm vượt giới hạn, engine hoãn nó sang ngày kế tiếp hoặc loại một event random chưa công bố; UI không tự cắt một event đã tồn tại trong runtime state.
+
+Mỗi event phải có đường thoát hợp lệ. Interaction `choices` dùng một choice `fallbackOnly` hoặc một choice không requirement như “Bỏ qua”. Interaction `item_selection` luôn có `noItemBranch` như “Không dùng vật phẩm” hoặc “Không thể làm gì”. Nhánh này vẫn resolve event và áp dụng hậu quả/queue nhánh tiếp theo; không để `currentEvent` khóa ván vô hạn chỉ vì người chơi không có item.
 
 UI contract cho item choice:
 
 - Choice dùng item đã biết nên hiện item, condition, số lượng cần và trạng thái khả dụng; item/content ẩn chưa discover thì không được spoil bằng choice disabled.
 - Choice không đủ item có thể disabled kèm lý do “Cần 1 rìu còn tốt”; fallback chỉ hiện theo rule của engine.
-- UI phải phân biệt “Yêu cầu nhưng không tiêu hao”, “Tiêu hao khi chọn” và “Có thể bị hỏng” bằng text ngắn; không suy diễn mọi nút “Sử dụng” đều làm mất item.
-- Trước khi tiêu hao item cuối cùng, item hiếm hoặc item nhiệm vụ, UI nên có confirmation. Server vẫn revalidate sau confirmation vì state có thể đã đổi ở tab khác.
-- UI có thể preview hậu quả deterministic, nhưng không được lộ weighted result/nhánh ẩn nếu content đánh dấu secret.
+- Trước khi resolve, UI chỉ hiện hành động người chơi có thể thực hiện cùng item và số lượng cần để choice khả dụng. Không hiện item sẽ bị giữ, tiêu hao hay hỏng.
+- Mô tả choice phải trung tính và chỉ mô tả hành động trực tiếp; không gợi ý phần thưởng, tổn thất, xác suất hoặc diễn biến tiếp theo.
+- UI dùng confirmation chung cho lựa chọn. Server vẫn revalidate requirement sau confirmation vì state có thể đã đổi ở tab khác.
+- Chỉ hiển thị outcome và effects sau khi server đã resolve. Không preview cả kết quả deterministic lẫn weighted result/nhánh ẩn.
 
 Các mode trigger ban đầu:
 
@@ -103,7 +108,9 @@ Các mode trigger ban đầu:
 | `location_pool` | Chỉ được event pool của một địa điểm chọn |
 | `manual` | Chỉ hệ thống/admin gọi trực tiếp |
 
-Độ hiếm chỉ phục vụ UI và analytics. Xác suất thực tế dùng `weight` sau khi engine đã lọc requirements, cooldown, giới hạn số lần và nhóm loại trừ.
+Độ hiếm gồm bốn cấp `common` (Thường), `uncommon` (Ít gặp), `rare` (Hiếm) và `ultra_rare` (Cực hiếm). Rarity là nhãn về tần suất xuất hiện, không cam kết phần thưởng hoặc mức nguy hiểm. Xác suất thực tế vẫn dùng `weight` sau khi engine đã lọc requirements, cooldown, giới hạn số lần và nhóm loại trừ.
+
+UI luôn hiện tên rarity bằng text, không chỉ dựa vào màu. Queue card dùng badge nhỏ; event đang mở đặt rarity cạnh category. Layout và choice card không đổi theo rarity, chỉ event shell, badge, icon và accent thay đổi có kiểm soát: xám cho Thường, xanh sky cho Ít gặp, tím violet cho Hiếm và vàng amber cho Cực hiếm. Hiếm/Cực hiếm có thể có glow hoặc entrance motion nhẹ nhưng không dùng animation lặp gây nhiễu, và màu rarity không được áp lên từng choice vì có thể ám chỉ outcome.
 
 ### 2.5. Thám hiểm, địa điểm và nhật ký hành trình
 
@@ -511,7 +518,7 @@ interface WeightedResult {
 }
 ```
 
-Quy ước độ hiếm chỉ gồm bốn mức: `common`, `uncommon`, `rare` và `ultra_rare`. `hidden` là thuộc tính độc lập, không phải một mức rarity: một event ẩn vẫn có thể có bất kỳ độ hiếm nào. UI ra quyết định mặc định không hiện rarity để tránh làm lộ giá trị của lựa chọn; rarity phù hợp hơn cho admin, cân bằng nội dung, analytics hoặc màn kết quả khi game design chủ động cho phép.
+Quy ước độ hiếm chỉ gồm bốn mức: `common`, `uncommon`, `rare` và `ultra_rare`. `hidden` là thuộc tính độc lập, không phải một mức rarity: một event ẩn vẫn có thể có bất kỳ độ hiếm nào. Khi event đã được đưa vào hàng chờ, UI hiện rarity để tạo cảm giác khám phá nhưng không preview outcome; rarity cũng phục vụ admin, cân bằng nội dung và analytics.
 
 `deterministic` là mặc định và chạy đúng effects admin đã setup. `weighted` là opt-in cục bộ; chỉ resolution đó mới dùng RNG. Không có bước random outcome toàn cục sau mọi choice.
 

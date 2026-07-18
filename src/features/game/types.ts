@@ -149,10 +149,8 @@ export interface CurrentEvent {
   description: string;
   category: string;
   rarity: "common" | "uncommon" | "rare" | "ultra_rare";
-  urgency: "required" | "optional";
   day: number;
   location: string;
-  expiresAtDay?: number;
   choices: EventChoice[];
 }
 

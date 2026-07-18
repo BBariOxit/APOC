@@ -275,14 +275,13 @@ export const mockCurrentEvents: CurrentEvent[] = [
       "Ba tiếng gõ ngắn vang lên từ phía bên kia cánh cửa. Một giọng nói khàn đặc xin đổi thông tin về khu cứu trợ lấy một chai nước sạch.",
     category: "Gặp gỡ",
     rarity: "rare",
-    urgency: "required",
     day: 12,
     location: "Cửa hầm phía Bắc",
     choices: [
       {
         id: "trade-water",
         label: "Đổi một chai nước",
-        description: "Đưa nước cho người lạ để đổi lấy thông tin về khu cứu trợ.",
+        description: "Đặt một chai nước vào khay trao đổi trước cửa hầm.",
         requiredItem: {
           itemKey: "water",
           quantity: 1,
@@ -301,8 +300,7 @@ export const mockCurrentEvents: CurrentEvent[] = [
       {
         id: "ignore",
         label: "Giữ im lặng",
-        description:
-          "Không tiêu hao tài nguyên, nhưng người lạ có thể không quay lại.",
+        description: "Không trả lời và tiếp tục giữ cửa hầm đóng kín.",
         result: {
           title: "Tiếng bước chân xa dần",
           description:
@@ -319,16 +317,13 @@ export const mockCurrentEvents: CurrentEvent[] = [
       "Một chuỗi âm thanh ngắt quãng phát ra từ góc liên lạc. Tín hiệu quá yếu để nghe rõ nếu không dùng radio dò lại tần số.",
     category: "Tín hiệu",
     rarity: "uncommon",
-    urgency: "optional",
     day: 12,
     location: "Góc liên lạc",
-    expiresAtDay: 12,
     choices: [
       {
         id: "scan-radio",
         label: "Dò tín hiệu bằng radio",
-        description:
-          "Radio chỉ được dùng để dò tần số và sẽ không bị tiêu hao.",
+        description: "Bật radio và dò lại dải tần vừa thu được.",
         requiredItem: {
           itemKey: "radio",
           quantity: 1,
@@ -347,7 +342,7 @@ export const mockCurrentEvents: CurrentEvent[] = [
       {
         id: "dismiss-signal",
         label: "Bỏ qua tín hiệu",
-        description: "Không sử dụng vật phẩm và để tín hiệu tự biến mất.",
+        description: "Tắt thiết bị liên lạc và trở lại công việc trong hầm.",
         result: {
           title: "Tín hiệu đã tắt",
           description:

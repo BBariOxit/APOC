@@ -72,11 +72,7 @@ export function GameHeader({
             variant="ghost"
             size="sm"
             onClick={onOpenEvent}
-            className={
-              canEndDay
-                ? "relative text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
-                : "relative text-amber-200/80 hover:bg-amber-300/10 hover:text-amber-100"
-            }
+            className="relative text-amber-200/80 hover:bg-amber-300/10 hover:text-amber-100"
           >
             <CircleAlert />
             <span className="hidden lg:inline">
@@ -94,7 +90,7 @@ export function GameHeader({
           title={
             canEndDay
               ? "Kết thúc ngày hiện tại"
-              : "Hãy giải quyết sự kiện bắt buộc trước"
+              : "Hãy xử lý tất cả sự kiện trước"
           }
           className="hidden min-w-28 sm:inline-flex"
         >

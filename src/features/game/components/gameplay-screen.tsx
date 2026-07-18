@@ -44,6 +44,7 @@ import { GameHeader } from "@/features/game/components/game-header";
 import { InventoryPanel } from "@/features/game/components/inventory-panel";
 import { ItemIcon } from "@/features/game/components/item-icon";
 import { ReturnJourneyPanel } from "@/features/game/components/return-journey-panel";
+import { MAX_EVENTS_PER_DAY } from "@/features/game/config";
 import type {
   DailyTask,
   GameCharacter,
@@ -77,6 +78,8 @@ const gameNavigationTabs: GameNavigationTab[] = [
     mobileOnly: true,
   },
 ];
+
+const dailyEvents = mockCurrentEvents.slice(0, MAX_EVENTS_PER_DAY);
 
 const careLabels: Record<
   CareAction,
@@ -124,12 +127,8 @@ export function GameplayScreen() {
   ).length;
   const unresolvedEvents = useMemo(
     () =>
-      mockCurrentEvents.filter((event) => !resolvedEventChoices[event.id]),
+      dailyEvents.filter((event) => !resolvedEventChoices[event.id]),
     [resolvedEventChoices],
-  );
-  const requiredPendingEvents = useMemo(
-    () => unresolvedEvents.filter((event) => event.urgency === "required"),
-    [unresolvedEvents],
   );
   const pendingEventItemKeys = useMemo(
     () =>
@@ -144,7 +143,7 @@ export function GameplayScreen() {
       ),
     [unresolvedEvents],
   );
-  const canEndDay = requiredPendingEvents.length === 0;
+  const canEndDay = unresolvedEvents.length === 0;
   const careItems = useMemo(() => {
     if (!careRequest) {
       return [];
@@ -160,20 +159,20 @@ export function GameplayScreen() {
   const dailyTasks = useMemo<DailyTask[]>(() => {
     const tasks: DailyTask[] = [];
 
-    if (requiredPendingEvents.length > 0) {
-      const [firstRequiredEvent] = requiredPendingEvents;
+    if (unresolvedEvents.length > 0) {
+      const [firstEvent] = unresolvedEvents;
 
       tasks.push({
         id: "pending-event",
         type: "event",
         title:
-          requiredPendingEvents.length === 1
-            ? firstRequiredEvent.title
-            : `${requiredPendingEvents.length} sự kiện bắt buộc`,
+          unresolvedEvents.length === 1
+            ? firstEvent.title
+            : `${unresolvedEvents.length} sự kiện chờ xử lý`,
         description:
-          requiredPendingEvents.length === 1
-            ? "Sự kiện này phải được giải quyết trước khi qua ngày."
-            : "Các sự kiện này phải được giải quyết trước khi qua ngày.",
+          unresolvedEvents.length === 1
+            ? "Cần đưa ra lựa chọn trước khi qua ngày."
+            : "Cần xử lý lần lượt trước khi qua ngày.",
         actionLabel: "Xử lý",
         destination: "event",
       });
@@ -204,7 +203,7 @@ export function GameplayScreen() {
     }
 
     return tasks;
-  }, [completedCareActions, requiredPendingEvents]);
+  }, [completedCareActions, unresolvedEvents]);
 
   function handleNavigate(tab: GameTab) {
     setActiveTab(tab);
@@ -376,7 +375,7 @@ export function GameplayScreen() {
               )}
               <TabsContent value="event">
                 <EventPanel
-                  events={mockCurrentEvents}
+                  events={dailyEvents}
                   inventory={mockInventory}
                   resolvedChoices={resolvedEventChoices}
                   onResolve={handleResolveEvent}
@@ -432,7 +431,7 @@ export function GameplayScreen() {
           disabled={!canEndDay}
           title={
             !canEndDay
-              ? "Hãy giải quyết sự kiện bắt buộc trước"
+              ? "Hãy xử lý tất cả sự kiện trước"
               : "Kết thúc ngày hiện tại"
           }
           onClick={() =>
