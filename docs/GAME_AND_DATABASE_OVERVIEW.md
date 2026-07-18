@@ -114,6 +114,12 @@ UI luôn hiện tên rarity bằng text, không chỉ dựa vào màu. Queue car
 
 Trong giai đoạn dựng giao diện, `SHOWCASE_ALL_EVENT_RARITIES` tạm bỏ qua giới hạn ba event để render đồng thời bốn mock event, mỗi event đại diện một rarity. Đây không phải luật gameplay; khi nối game engine phải tắt showcase để `MAX_EVENTS_PER_DAY` tiếp tục là giới hạn hiệu lực.
 
+### 2.4.1. Ambient hằng ngày
+
+Ambient là mẩu diễn biến tự động dùng để làm báo cáo đầu ngày bớt lặp lại, ví dụ “Có tiếng động ngoài cửa hầm”. Ambient không phải pending event, không yêu cầu người chơi chọn và không chiếm một trong ba slot event của ngày. Nội dung ambient nằm trong `ambient_definitions`, được lọc theo rule/cooldown rồi seeded-random tối đa một lần khi sang ngày.
+
+Ambient có thể chỉ chứa narrative không effect, hoặc có effect chủ ý như đặt flag hay queue một event/ambient khác. Kết quả đã chọn phải được ghi `run_event_logs` với `ambientKey` và `resultKey` nếu resolution weighted; client không tự random lại khi reload. Màn Hằng ngày là read model ghép metrics từ `game_runs`, hệ quả từ log ngày trước, báo cáo trở về từ `run_expeditions` và ambient của ngày hiện tại.
+
 ### 2.5. Thám hiểm, địa điểm và nhật ký hành trình
 
 Thám hiểm là subsystem nhiều ngày được server tự resolve trong khi nhân vật ở bên ngoài. Người chơi chỉ phái một nhân vật đi và chuẩn bị hành trang; không chọn trước địa điểm. Route, địa điểm và location event được server xác định trong lúc chuyến đi diễn ra. Người chơi được xem lại người đi và hành trang ban đầu nhưng không nhận chỉ số hiện tại, vị trí hiện tại, carried inventory còn lại hay event theo thời gian thực. Toàn bộ diễn biến chỉ được công bố khi nhân vật trở về hoặc khi một event khác xác nhận số phận của họ.
@@ -251,6 +257,7 @@ character_definitions     user_achievements
 item_definitions          global_stats
 location_definitions
 event_definitions
+ambient_definitions
 ending_definitions
 achievement_definitions
           \                 /
@@ -264,7 +271,7 @@ achievement_definitions
 
 Quy tắc embed/reference:
 
-Trạng thái triển khai hiện tại: code đã đăng ký Mongoose model cho `content_versions`, `game_rule_definitions` và `game_runs` để làm vertical slice. Các collection còn lại trong tài liệu vẫn là contract thiết kế và chỉ được thêm model khi subsystem tương ứng bắt đầu ghi dữ liệu thật. MongoDB chỉ tạo collection vật lý khi có thao tác ghi hoặc khởi tạo collection; việc import model không tự seed dữ liệu.
+Trạng thái triển khai hiện tại: code đã đăng ký đủ 17 Mongoose model trong sơ đồ, gồm content version, 8 definition collections, 3 account collections, 3 runtime collections, global stats và admin audit. Mỗi model có index cục bộ và document invariant tương ứng; toàn bộ content graph được kiểm lại trước publish. MongoDB chỉ tạo collection vật lý khi có thao tác ghi hoặc khởi tạo collection; việc import model không tự seed dữ liệu. Có model đầy đủ không đồng nghĩa API/DAL, transaction workflow, seed content và migration index đã hoàn tất.
 
 - Embed dữ liệu nhỏ, có vòng đời cùng document và luôn đọc cùng nhau: bốn character states, inventory snapshot, flags, queue ngắn.
 - Reference dữ liệu có vòng đời riêng, tăng không giới hạn hoặc cần truy vấn độc lập: content definitions, event logs, achievements.
@@ -303,6 +310,7 @@ interface User {
   _id: ObjectId;
   email: string;
   username: string;
+  usernameKey: string; // NFKC + lowercase, field nội bộ để unique
   passwordHash?: string;
   role: "player" | "admin";
   status: "active" | "banned";
@@ -317,7 +325,7 @@ Indexes:
 
 ```ts
 { email: 1 }    // unique, normalized lowercase
-{ username: 1 } // unique, normalized key riêng nếu cần giữ display name
+{ usernameKey: 1 } // unique, không làm mất display casing của username
 ```
 
 Không đưa `passwordHash`, role mutation hoặc thông tin nhạy cảm vào client payload. Admin authorization phải được kiểm tra trong server action/route handler, không chỉ ẩn nút ở UI.
@@ -348,7 +356,7 @@ interface PlayerProfile {
 }
 ```
 
-`userId` là unique. Các mảng meta nhỏ có thể embed; nếu catalog tăng đến hàng chục nghìn mục thì tách collection unlock riêng.
+`userId` là unique. Unique partial index trên `game_runs` với status active là source of truth cho giới hạn một active run; `activeRunId` chỉ là cache/pointer để load nhanh và phải được cập nhật cùng transaction tạo/kết thúc run. Các mảng meta nhỏ có thể embed; nếu catalog tăng đến hàng chục nghìn mục thì tách collection unlock riêng. Meta key là identity ổn định toàn cục: version mới không được tái sử dụng key cũ cho nội dung khác và phải migrate hoặc tiếp tục cung cấp key đã unlock.
 
 ### 6.3. `user_achievements`
 
@@ -361,6 +369,7 @@ interface UserAchievement {
   completed: boolean;
   unlockedAt?: Date;
   sourceRunId?: ObjectId;
+  createdAt: Date;
   updatedAt: Date;
 }
 ```
@@ -394,12 +403,12 @@ interface GameRuleDefinition {
   _id: ObjectId;
   contentVersionId: ObjectId;
   statRules: {
-    min: number;
-    max: number;
     criticalBelow: number;
   };
   dailyRules: {
     maxEventsPerDay: number;
+    maxAmbientPerDay: number;
+    ambientChance: number;
     foodUnitsPerCharacter: number;
     waterUnitsPerCharacter: number;
   };
@@ -415,7 +424,7 @@ interface GameRuleDefinition {
 }
 ```
 
-Unique index: `{ contentVersionId: 1 }`. Những công thức như clamp stat, tính capacity và áp dụng cooldown vẫn nằm trong game engine; ruleset chỉ cung cấp tham số đã được validate.
+Unique index: `{ contentVersionId: 1 }`. Bốn character stat luôn dùng range cố định `0..100`; ruleset chỉ cấu hình ngưỡng critical, không thay đổi range mà runtime schema đang bảo vệ. Những công thức như clamp stat, tính capacity và áp dụng cooldown vẫn nằm trong game engine; ruleset chỉ cung cấp tham số đã được validate.
 
 ### 7.2. `character_definitions`
 
@@ -509,6 +518,7 @@ interface EventDefinition extends VersionedDefinition {
   description: string;
   imageUrl?: string;
   category: "story" | "daily" | "location" | "special";
+  delivery: "pending" | "expedition";
   rarity: "common" | "uncommon" | "rare" | "ultra_rare";
   weight: number;
   hidden: boolean;
@@ -591,6 +601,8 @@ interface WeightedResult {
 }
 ```
 
+`delivery: "pending"` đưa event có `choices` hoặc `item_selection` source player vào queue cần xử lý. `delivery: "expedition"` đi cùng `category: "location"` + trigger `location_pool` và chỉ dùng `scripted` hoặc `item_selection` source carried inventory. Event pending không được dùng interaction `scripted`; expedition không có player đang xem để chọn choices. Narrative tự động của báo cáo đầu ngày không dùng event delivery mà nằm trong `ambient_definitions`.
+
 Quy ước độ hiếm chỉ gồm bốn mức: `common`, `uncommon`, `rare` và `ultra_rare`. `hidden` là thuộc tính độc lập, không phải một mức rarity: một event ẩn vẫn có thể có bất kỳ độ hiếm nào. Khi event đã được đưa vào hàng chờ, UI hiện rarity để tạo cảm giác khám phá nhưng không preview outcome; rarity cũng phục vụ admin, cân bằng nội dung và analytics.
 
 `deterministic` là mặc định và chạy đúng effects admin đã setup. `weighted` là opt-in cục bộ; chỉ resolution đó mới dùng RNG. Không có bước random outcome toàn cục sau mọi choice.
@@ -624,8 +636,9 @@ Ví dụ rút gọn cho kho hàng số 4:
 
 ```json
 {
-  "eventKey": "fatal_floor_collapse",
+  "key": "fatal_floor_collapse",
   "category": "location",
+  "delivery": "expedition",
   "trigger": { "mode": "location_pool" },
   "interaction": {
     "mode": "scripted",
@@ -634,7 +647,7 @@ Ví dụ rút gọn cho kho hàng số 4:
       "title": "Sàn kho đổ sập",
       "description": "Nhân vật không thể thoát khỏi tầng hầm bị sập.",
       "effects": [
-        { "type": "kill_character", "target": "journey_character", "cause": "warehouse_floor_collapse" }
+        { "type": "kill_character", "target": { "mode": "expedition_character" }, "cause": "warehouse_floor_collapse" }
       ]
     }
   }
@@ -739,7 +752,36 @@ Ví dụ rút gọn dưới đây minh họa bốn trường hợp trong cùng m
 - `noItemBranch` chạy deterministic khi không item nào match, resolve event rồi queue cơ hội khác thay vì khóa ngày.
 - Nếu muốn người chơi luôn có quyền “Không dùng item” dù đang sở hữu item, đặt `noItemBranch.availability: "always"`.
 
-### 7.6. `ending_definitions`
+### 7.6. `ambient_definitions`
+
+Ambient là content tự động của báo cáo đầu ngày, tách khỏi event để pool narrative không làm thay đổi quota pending event và CMS có thể cân bằng tần suất riêng.
+
+```ts
+interface AmbientDefinition extends VersionedDefinition {
+  name: string;
+  timeLabel: string;
+  rarity: "common" | "uncommon" | "rare" | "ultra_rare";
+  weight: number;
+  hidden: boolean;
+  tags: string[];
+  trigger: {
+    mode: "random" | "fixed_day" | "scheduled";
+    fixedDay?: number;
+    minDay?: number;
+    maxDay?: number;
+    maxOccurrences?: number;
+    cooldownDays?: number;
+  };
+  requirements?: Rule;
+  exclusionAmbientKeys: string[];
+  mutexGroup?: string;
+  resolution: EventResolution;
+}
+```
+
+Ambient deterministic hiện đúng một narrative. Ambient weighted chọn đúng một result có key để tạo biến thể nhưng chỉ roll một lần trên server. Scheduled ambient nằm trong `game_runs.ambientState.queuedAmbient`; ambient đã resolve được ghi log và không bao giờ đi vào `pendingEvents`.
+
+### 7.7. `ending_definitions`
 
 ```ts
 interface EndingDefinition extends VersionedDefinition {
@@ -753,7 +795,7 @@ interface EndingDefinition extends VersionedDefinition {
 }
 ```
 
-### 7.7. `achievement_definitions`
+### 7.8. `achievement_definitions`
 
 ```ts
 interface AchievementDefinition extends VersionedDefinition {
@@ -830,6 +872,8 @@ type Effect =
   | { type: "increment_counter"; key: string; amount: number }
   | { type: "queue_event"; eventKey: string; delayDays: number }
   | { type: "cancel_queued_event"; eventKey: string }
+  | { type: "queue_ambient"; ambientKey: string; delayDays: number }
+  | { type: "cancel_queued_ambient"; ambientKey: string }
   | { type: "unlock_event_in_run"; eventKey: string }
   | { type: "unlock_event_for_account"; eventKey: string }
   | { type: "unlock_item_for_account"; itemKey: string }
@@ -842,6 +886,13 @@ type Effect =
 type InventoryTarget =
   | { scope: "shelter" }
   | { scope: "carried_inventory" };
+
+type CharacterTarget =
+  | { mode: "character"; characterKey: string }
+  | { mode: "expedition_character" }
+  | { mode: "all_shelter" };
+
+type CharacterStat = "health" | "satiety" | "hydration" | "sanity";
 ```
 
 Location event effect tác động vào `carried_inventory` của chuyến đi, không cộng thẳng vào kho hầm. Chỉ khi nhân vật trở về, server mới chuyển item còn lại sang shelter inventory trong cùng transaction. Journal entry được engine tạo từ scripted resolution + applied effects; content không có effect tùy ý để tự ghi log giả.
@@ -867,6 +918,7 @@ interface GameRun {
   _id: ObjectId;
   userId: ObjectId;
   contentVersionId: ObjectId;
+  engineVersion: string;
   status: "active" | "completed" | "abandoned";
   mode: "normal" | "daily_challenge";
   day: number;
@@ -909,7 +961,6 @@ interface GameRun {
     itemKey: string;
     intactQuantity: number;
     brokenQuantity: number;
-    discovered: boolean;
   }>;
   locations: Array<{
     locationKey: string;
@@ -932,6 +983,7 @@ interface GameRun {
   eventState: {
     occurredCounts: Record<string, number>;
     lastOccurredDay: Record<string, number>;
+    choiceCounts: Record<`${string}:${string}`, number>;
     completedEventKeys: string[];
     blockedEventKeys: string[];
     queuedEvents: Array<{
@@ -944,6 +996,17 @@ interface GameRun {
       eventKey: string;
       generatedDay: number;
       sequence: number;
+    }>;
+  };
+  ambientState: {
+    occurredCounts: Record<string, number>;
+    lastOccurredDay: Record<string, number>;
+    blockedAmbientKeys: string[];
+    queuedAmbient: Array<{
+      ambientKey: string;
+      scheduledDay: number;
+      sourceAmbientKey?: string;
+      sourceEventKey?: string;
     }>;
   };
   ending?: {
@@ -964,9 +1027,13 @@ Indexes:
 { status: 1, lastPlayedAt: 1 } // cleanup/analytics nếu cần
 ```
 
-`revision` dùng optimistic concurrency. Mutation chỉ update khi revision client gửi trùng revision hiện tại, sau đó tăng revision. Request lặp hoặc tab thứ hai sẽ nhận conflict thay vì áp dụng effect hai lần.
+`revision` là version key do application quản lý; Mongoose `__v` bị tắt để không tồn tại hai bộ đếm cạnh tranh. Mọi mutation phải filter bằng `_id + userId + status: "active" + revision`, áp dụng update và `$inc: { revision: 1 }` trong cùng transaction. Request lặp hoặc tab thứ hai sẽ nhận conflict thay vì áp dụng effect hai lần.
 
 `pendingEvents` là queue ngắn, luôn được đọc cùng snapshot và bị chặn bởi `dailyRules.maxEventsPerDay`, nên chưa cần collection event instance riêng. Khi resolve, event được xóa khỏi queue và kết quả có cấu trúc được append vào `run_event_logs`; client không nhận resolution bí mật trước lúc server xử lý lựa chọn.
+
+`eventState.choiceCounts` dùng composite key `eventKey:choiceKey` để Rule DSL evaluate `event_choice_made` chỉ từ snapshot, không query lịch sử trong lúc chạy engine. `ambientState` theo dõi cooldown, occurrence và ambient đã schedule; ambient không bao giờ nằm trong `pendingEvents`. Item discovery chỉ có một nguồn trong run là `discoveredItemKeys`, vì một item vẫn có thể đã discover sau khi quantity trong inventory về zero.
+
+`run_expeditions.status` là source of truth của expedition document; `characters[].expedition` là link trong snapshot và `activeExpeditionIds` là cache bắt buộc phải khớp chính xác với các link nhân vật. Cả ba được cập nhật trong cùng transaction với inventory và log.
 
 `locations` chỉ chứa state nhỏ, có giới hạn theo catalog và cần đọc cùng snapshot. Không embed event pool hoặc toàn bộ journal vào `game_runs`. `rumored` nghĩa là game đã biết location nhưng chưa đưa vào pool bình thường; `discovered` cho phép engine chọn location trong các chuyến đi ngẫu nhiên; `visited` đã ghé ít nhất một lần; `depleted` tạm thời hoặc vĩnh viễn không còn pool loot bình thường. Người chơi không chọn destination trực tiếp trong UI.
 
@@ -1064,13 +1131,28 @@ interface RunEventLog {
   _id: ObjectId;
   runId: ObjectId;
   userId: ObjectId;
+  contentVersionId: ObjectId;
+  engineVersion: string;
   commandId?: string;
+  causationId?: string;
   sequence: number;
   day: number;
-  action: "advance_day" | "event_choice" | "expedition" | "location_event" | "system";
+  action:
+    | "advance_day"
+    | "event_choice"
+    | "ambient"
+    | "care"
+    | "expedition_depart"
+    | "expedition_progress"
+    | "expedition_return"
+    | "report_read"
+    | "abandon_run"
+    | "system";
   expeditionId?: string;
   locationKey?: string;
+  eventInstanceId?: string;
   eventKey?: string;
+  ambientKey?: string;
   choiceKey?: string;
   selectedItemKey?: string;
   itemBranchKey?: string;
@@ -1098,11 +1180,13 @@ Indexes:
 ```ts
 { runId: 1, sequence: 1 } // unique
 { runId: 1, commandId: 1 } // unique partial index khi commandId tồn tại
-{ runId: 1, day: 1 }
+{ runId: 1, day: 1, sequence: 1 }
+{ runId: 1, causationId: 1, sequence: 1 }
 { runId: 1, expeditionId: 1, sequence: 1 }
+{ runId: 1, eventInstanceId: 1 }
 ```
 
-`run_event_logs` là audit/domain log để replay và debug; `run_expeditions.journalEntries` là read model có narrative dành cho người chơi. Hai collection liên kết bằng `expeditionId`, `eventKey`, `itemBranchKey` và `resultKey`, nhưng không dùng journal text để tái áp dụng effect. Log hỗ trợ lịch sử UI, tái hiện bug, chống gian lận và analytics. Không lưu secret hoặc PII trong log.
+`run_event_logs` là action/audit log để tái hiện command và debug; `run_expeditions.journalEntries` là read model có narrative dành cho người chơi. Root log của mutation giữ `commandId`; ambient/expedition/system log phát sinh từ cùng mutation giữ `causationId` bằng command đó để unique command index không chặn nhiều domain log hợp lệ. Event pending liên kết chính xác bằng `eventInstanceId`; ambient dùng `ambientKey`; expedition dùng `expeditionId`, `eventKey`, `itemBranchKey` và `resultKey`. `contentVersionId` và `engineVersion` giúp xác định đúng content/code contract đã tạo log. Không dùng journal text để tái áp dụng effect và không lưu secret hoặc PII trong log.
 
 ## 11. Random engine
 
@@ -1116,6 +1200,14 @@ Quy trình chọn random event:
 4. Sắp xếp candidate theo `key` trước khi random để kết quả không phụ thuộc thứ tự MongoDB trả về.
 5. Chọn weighted random bằng RNG của ván.
 6. Ghi roll, candidate result và cursor mới vào transaction/log.
+
+Quy trình chọn ambient khi sang ngày:
+
+1. Xử lý ambient scheduled/fixed-day đến hạn trước, sau đó mới xét pool random.
+2. Nếu chưa có ambient bắt buộc, roll `dailyRules.ambientChance`; tổng số được chặn bởi `maxAmbientPerDay`.
+3. Lọc `ambient_definitions` theo version, enabled, day, requirements, cooldown, occurrence, exclusion và mutex.
+4. Sắp xếp candidate theo `key`, weighted-random đúng một ambient rồi resolve deterministic/weighted như event.
+5. Update `ambientState`, áp dụng effects, append log action `ambient`; không thêm ambient vào `pendingEvents`.
 
 Quy trình resolve event tại một địa điểm trong chuyến đi:
 
@@ -1142,15 +1234,18 @@ Các thao tác sau phải nằm trong MongoDB transaction khi cùng xảy ra:
 - Cấp achievement và account unlock.
 - Cập nhật `activeRunId` khi tạo/kết thúc ván.
 
-Command mutation nên nhận `commandId` duy nhất. Lưu commandId gần log hoặc trong collection idempotency nếu client có thể retry do mất mạng. Unique index ngăn cùng command chạy hai lần.
+Mọi gameplay mutation nhận `commandId` duy nhất và append đúng một root `run_event_logs` entry trong cùng transaction; các domain log phát sinh thêm dùng `causationId`. Unique partial index `{ runId, commandId }` ngăn retry do mất mạng chạy cùng command hai lần. Mutation không thuộc gameplay log như admin CRUD phải có idempotency contract riêng khi endpoint đó được triển khai.
 
 Các invariant bắt buộc:
 
 - Quantity và resource không âm.
+- Day, quantity, sequence, occurrence, counter và cooldown là số nguyên trong giới hạn schema.
 - Stat nằm trong khoảng chuẩn hóa, dự kiến `0..100`.
 - Character chết không thể nhận action sống thông thường.
 - `pendingEvents` không vượt `dailyRules.maxEventsPerDay`; mỗi `instanceId` là duy nhất trong ván.
+- Ambient không nằm trong `pendingEvents`, không vượt `dailyRules.maxAmbientPerDay` trong một lần advance day và chỉ random một lần trên server.
 - Choice chỉ được chọn nếu thuộc một pending event và requirements đang còn hợp lệ.
+- Event choice log có đúng một intent: `choiceKey`, `selectedItemKey` hoặc fallback; weighted resolution luôn có `resultKey`.
 - Item requirement được kiểm tra và item effect được áp dụng trong cùng transaction; không có khoảng trống để hai request cùng tiêu một item.
 - `fallbackOnly` chỉ hợp lệ khi không còn normal choice nào thỏa requirements tại revision hiện tại.
 - `selectedItemKey` phải khớp một entry trong `interaction.itemBranches`; client không được thay bằng item key tùy ý.
@@ -1159,8 +1254,9 @@ Các invariant bắt buộc:
 - Run `completed` không nhận gameplay mutation.
 - Event vượt `maxOccurrences` không trở lại pool.
 - Một nhân vật chỉ có tối đa một expedition `active`.
-- `carriedInventory` và shelter inventory không được cùng sở hữu một item instance.
+- Khi khởi hành/trở về, quantity theo `itemKey + condition` phải được chuyển atomically và bảo toàn tổng lượng trừ effect đã log; cùng một item key có thể hợp lệ tồn tại ở cả shelter lẫn nhiều expedition vì runtime hiện dùng stack quantity, không dùng item instance.
 - Location runtime key phải tồn tại trong đúng `contentVersionId` của ván.
+- Account unlock/discovery key đã publish không được tái sử dụng cho ý nghĩa khác; content version mới phải giữ key hoặc cung cấp migration.
 - Expedition report `hidden` không được xuất hiện trong client payload hoặc history API.
 - Result gây chết phải đi qua `kill_character` và lưu cause/event/item branch/result cụ thể; không chỉ set health âm rồi bỏ qua log.
 
@@ -1189,11 +1285,13 @@ Admin cần CRUD cho draft content, preview rule/effect, validate graph và publ
 Trước khi publish phải kiểm tra:
 
 - Key unique trong version.
-- Mọi item/location/event/ending/achievement reference đều tồn tại.
+- Mọi item/location/event/ambient/ending/achievement reference đều tồn tại trong đúng content version.
 - Mọi location event pool chỉ tham chiếu event `category: "location"` cùng version.
 - Location pool không có weight âm, event key trùng hoặc reference vòng discovery không thể đạt được.
 - Rule và effect đúng schema.
 - `interaction.mode: "choices"` không có choices rỗng; `item_selection` phải có item branch và `noItemBranch`; `scripted` phải có resolution.
+- Event `category: "location"` phải có `delivery: "expedition"` và chiều ngược lại; event `delivery: "pending"` không được dùng interaction `scripted`.
+- Ambient chỉ dùng trigger `random`, `fixed_day` hoặc `scheduled`, luôn có resolution và không được tham chiếu như pending event.
 - `itemBranches` chỉ tham chiếu item hợp lệ, không trùng tổ hợp item/condition và có quantity dương; trạng thái “tiêu hao/giữ nguyên/có thể hỏng” của admin preview phải derive từ resolution effects.
 - Với `source: "carried_inventory"`, priority phải xác định duy nhất branch thắng nếu nhiều item cùng match; không được fallback sang random item.
 - Với `source: "carried_inventory"`, `noItemBranch.availability` bắt buộc là `fallback_only` vì không có player đang xem để chủ động chọn bỏ qua.
@@ -1206,6 +1304,8 @@ Trước khi publish phải kiểm tra:
 - Chained event không tạo vòng lặp bắt buộc vô hạn.
 - Fixed/scheduled event không tự queue chính nó ngoài chủ ý đã xác nhận.
 - Ending priority conflict được cảnh báo.
+
+`src/server/validation/content.ts` là Zod contract cho Rule, Effect và toàn bộ definition payload. `validateContentVersionForPublish` chỉ nhận draft, kiểm tra đúng một ruleset, tối thiểu bốn character và một ending đang bật, validate lại mọi document, kiểm toàn bộ reference character/item/location/event/ambient/ending/achievement trong cùng version, kiểm loại event trong location pool, chặn self-queue tức thời và cảnh báo ending trùng priority. Draft CMS phải đi qua DAL, validate input rồi load document và `save`; không dùng raw update để bỏ qua document validation.
 
 ### `admin_audit_logs`
 
@@ -1223,7 +1323,7 @@ interface AdminAuditLog {
 }
 ```
 
-Audit log là append-only và không cho admin thường sửa/xóa.
+Audit log là append-only và không cho admin thường sửa/xóa. Model chặn document save trên bản ghi cũ cùng các query update/replace/delete thông dụng; quyền ghi audit vẫn phải nằm sau admin authorization trong DAL. Truy cập thẳng MongoDB collection có thể bỏ qua middleware nên production role không được cấp quyền update/delete collection này nếu hạ tầng hỗ trợ tách quyền.
 
 ## 15. API command dự kiến
 
@@ -1311,14 +1411,16 @@ Mọi mutation contract tối thiểu gồm `runId`, `revision`, `commandId` và
 | Item requirement không đồng nghĩa item consumption | Một item có thể chỉ mở nhánh, bị tiêu hao, bị hỏng hoặc giữ nguyên tùy effect |
 | `itemBranches` là allowlist có script riêng | Item id nào được chọn sẽ chạy đúng resolution của branch đó; client không tự khai effect hay reward |
 | Event có fallback khi mọi choice bị khóa | Không soft-lock ván chỉ vì người chơi không sở hữu item yêu cầu |
+| Ambient tách khỏi event definition | Narrative đầu ngày có pool/cooldown riêng và không làm thay đổi quota pending event |
+| Một tài khoản có tối đa một active run | Unique partial index là source of truth; `player_profiles.activeRunId` nếu giữ chỉ là cache cập nhật cùng transaction |
+| Character stat cố định `0..100` | Runtime validation và threshold cùng một chiều, ruleset không tạo range mâu thuẫn |
+| Application quản lý `revision`, tắt Mongoose `__v` | Mỗi command chỉ có một cơ chế optimistic concurrency rõ ràng |
 
 ## 19. Câu hỏi còn mở
 
 Những quyết định này chưa cần chốt ở giai đoạn scaffold nhưng phải chốt trước khi triển khai feature liên quan:
 
-- Chỉ số đói/khát tăng khi xấu đi hay giảm khi xấu đi?
 - Bốn nhân vật cố định hay có thể unlock roster và chọn đội hình?
-- Mỗi tài khoản chỉ có một active run hay nhiều save slot?
 - Daily challenge có leaderboard hay chỉ dùng chung seed?
 - Nội dung có cần đa ngôn ngữ từ đầu không?
 

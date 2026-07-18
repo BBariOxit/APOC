@@ -7,12 +7,12 @@ import { GameRuleDefinitionModel } from "@/server/db/models";
 
 export interface GameRulesDTO {
   statRules: {
-    min: number;
-    max: number;
     criticalBelow: number;
   };
   dailyRules: {
     maxEventsPerDay: number;
+    maxAmbientPerDay: number;
+    ambientChance: number;
     foodUnitsPerCharacter: number;
     waterUnitsPerCharacter: number;
   };
@@ -49,12 +49,12 @@ export async function getGameRules(
 
   return {
     statRules: {
-      min: rules.statRules.min,
-      max: rules.statRules.max,
       criticalBelow: rules.statRules.criticalBelow,
     },
     dailyRules: {
       maxEventsPerDay: rules.dailyRules.maxEventsPerDay,
+      maxAmbientPerDay: rules.dailyRules.maxAmbientPerDay,
+      ambientChance: rules.dailyRules.ambientChance,
       foodUnitsPerCharacter: rules.dailyRules.foodUnitsPerCharacter,
       waterUnitsPerCharacter: rules.dailyRules.waterUnitsPerCharacter,
     },

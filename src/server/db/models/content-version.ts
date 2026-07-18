@@ -10,7 +10,13 @@ import {
 
 const contentVersionSchema = new Schema(
   {
-    version: { type: String, required: true, trim: true },
+    version: {
+      type: String,
+      required: true,
+      trim: true,
+      match:
+        /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/,
+    },
     status: {
       type: String,
       enum: ["draft", "published", "archived"],
@@ -35,6 +41,18 @@ contentVersionSchema.index(
     partialFilterExpression: { status: "published" },
   },
 );
+
+contentVersionSchema.pre("validate", function validatePublishState() {
+  if (this.status === "draft" && this.publishedAt) {
+    this.invalidate("publishedAt", "draft content cannot have publishedAt");
+  }
+  if (this.status !== "draft" && !this.publishedAt) {
+    this.invalidate(
+      "publishedAt",
+      "published and archived content require publishedAt",
+    );
+  }
+});
 
 export type ContentVersion = InferSchemaType<typeof contentVersionSchema>;
 

@@ -8,29 +8,65 @@ import {
   models,
 } from "mongoose";
 
+import { gameRuleDefinitionContentSchema } from "@/server/validation/content";
+
+const integerValidator = {
+  validator: Number.isInteger,
+  message: "{PATH} must be an integer",
+};
+
 const statRulesSchema = new Schema(
   {
-    min: { type: Number, required: true, default: 0, min: 0 },
-    max: { type: Number, required: true, default: 100, min: 1 },
-    criticalBelow: { type: Number, required: true, default: 35, min: 0 },
+    criticalBelow: {
+      type: Number,
+      required: true,
+      default: 35,
+      min: 1,
+      max: 100,
+      validate: integerValidator,
+    },
   },
   { _id: false },
 );
 
 const dailyRulesSchema = new Schema(
   {
-    maxEventsPerDay: { type: Number, required: true, default: 3, min: 1 },
+    maxEventsPerDay: {
+      type: Number,
+      required: true,
+      default: 3,
+      min: 1,
+      max: 3,
+      validate: integerValidator,
+    },
+    maxAmbientPerDay: {
+      type: Number,
+      required: true,
+      default: 1,
+      min: 0,
+      max: 1,
+      validate: integerValidator,
+    },
+    ambientChance: {
+      type: Number,
+      required: true,
+      default: 0.65,
+      min: 0,
+      max: 1,
+    },
     foodUnitsPerCharacter: {
       type: Number,
       required: true,
       default: 1,
       min: 0,
+      validate: integerValidator,
     },
     waterUnitsPerCharacter: {
       type: Number,
       required: true,
       default: 1,
       min: 0,
+      validate: integerValidator,
     },
   },
   { _id: false },
@@ -43,25 +79,40 @@ const expeditionRulesSchema = new Schema(
       required: true,
       default: 4,
       min: 1,
+      max: 8,
+      validate: integerValidator,
     },
     healthPerLostSlot: {
       type: Number,
       required: true,
       default: 25,
       min: 1,
+      max: 100,
+      validate: integerValidator,
     },
     returnCooldownDays: {
       type: Number,
       required: true,
       default: 5,
       min: 0,
+      max: 30,
+      validate: integerValidator,
     },
-    maxDurationDays: { type: Number, required: true, default: 14, min: 1 },
+    maxDurationDays: {
+      type: Number,
+      required: true,
+      default: 14,
+      min: 1,
+      max: 30,
+      validate: integerValidator,
+    },
     maxJournalEntries: {
       type: Number,
       required: true,
       default: 32,
       min: 1,
+      max: 100,
+      validate: integerValidator,
     },
   },
   { _id: false },
@@ -86,18 +137,16 @@ const gameRuleDefinitionSchema = new Schema(
 
 gameRuleDefinitionSchema.index({ contentVersionId: 1 }, { unique: true });
 
-gameRuleDefinitionSchema.pre("validate", function validateRuleRanges() {
-  if (this.statRules.min >= this.statRules.max) {
-    this.invalidate("statRules.max", "max must be greater than min");
-  }
-
-  if (
-    this.statRules.criticalBelow <= this.statRules.min ||
-    this.statRules.criticalBelow > this.statRules.max
-  ) {
-    this.invalidate(
-      "statRules.criticalBelow",
-      "criticalBelow must be greater than min and no greater than max",
+gameRuleDefinitionSchema.pre("validate", function validateContent() {
+  const definition = this.toObject();
+  const result = gameRuleDefinitionContentSchema.safeParse({
+    statRules: definition.statRules,
+    dailyRules: definition.dailyRules,
+    expeditionRules: definition.expeditionRules,
+  });
+  if (!result.success) {
+    result.error.issues.forEach((issue) =>
+      this.invalidate(issue.path.join("."), issue.message),
     );
   }
 });
