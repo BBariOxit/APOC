@@ -28,6 +28,7 @@ interface GameHeaderProps {
   day: number;
   aliveCount: number;
   canEndDay: boolean;
+  pendingEventCount: number;
   onEndDay: () => void;
   onOpenEvent: () => void;
   onMenuAction: (action: "achievements" | "settings" | "leave") => void;
@@ -37,6 +38,7 @@ export function GameHeader({
   day,
   aliveCount,
   canEndDay,
+  pendingEventCount,
   onEndDay,
   onOpenEvent,
   onMenuAction,
@@ -65,7 +67,7 @@ export function GameHeader({
           </Tooltip>
         </div>
 
-        {!canEndDay && (
+        {pendingEventCount > 0 && (
           <Button
             variant="ghost"
             size="sm"
@@ -73,8 +75,12 @@ export function GameHeader({
             className="relative text-amber-200/80 hover:bg-amber-300/10 hover:text-amber-100"
           >
             <CircleAlert />
-            <span className="hidden lg:inline">Sự kiện chưa xử lý</span>
-            <span className="absolute right-0.5 top-0.5 size-1.5 rounded-full bg-amber-300 lg:hidden" />
+            <span className="hidden lg:inline">
+              {pendingEventCount} sự kiện chưa xử lý
+            </span>
+            <span className="grid min-w-4 place-items-center rounded-full bg-white/8 px-1 font-mono text-[10px] leading-4 lg:hidden">
+              {pendingEventCount}
+            </span>
           </Button>
         )}
 
@@ -84,7 +90,7 @@ export function GameHeader({
           title={
             canEndDay
               ? "Kết thúc ngày hiện tại"
-              : "Hãy giải quyết sự kiện trước"
+              : "Hãy xử lý tất cả sự kiện trước"
           }
           className="hidden min-w-28 sm:inline-flex"
         >

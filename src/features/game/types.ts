@@ -36,6 +36,7 @@ export interface GameCharacter {
   name: string;
   initials: string;
   role: string;
+  baseLoadoutSlots: number;
   state: CharacterState;
   stats: CharacterStats;
   conditions: CharacterCondition[];
@@ -130,10 +131,17 @@ export interface ReturnJourneyReport {
 export interface EventChoice {
   id: string;
   label: string;
-  description: string;
-  requiredItemKey?: string;
-  requiredQuantity?: number;
-  variant: "primary" | "secondary";
+  description?: string;
+  requiredItem?: {
+    itemKey: string;
+    quantity: number;
+    usage: "consume" | "retain" | "risk";
+  };
+  result: {
+    title: string;
+    description: string;
+    effects: GameEffect[];
+  };
 }
 
 export interface CurrentEvent {
@@ -141,7 +149,9 @@ export interface CurrentEvent {
   title: string;
   description: string;
   category: string;
-  rarity: "common" | "uncommon" | "rare" | "legendary";
+  rarity: "common" | "uncommon" | "rare" | "ultra_rare";
+  day: number;
+  location: string;
   choices: EventChoice[];
 }
 

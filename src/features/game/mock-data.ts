@@ -12,6 +12,7 @@ export const mockCharacters: GameCharacter[] = [
     name: "Minh",
     initials: "MI",
     role: "Trụ cột",
+    baseLoadoutSlots: 4,
     state: "shelter",
     stats: { health: 78, satiety: 61, hydration: 34, sanity: 72 },
     conditions: [{ label: "Đang khát", tone: "warning" }],
@@ -21,6 +22,7 @@ export const mockCharacters: GameCharacter[] = [
     name: "Lan",
     initials: "LA",
     role: "Y tế",
+    baseLoadoutSlots: 3,
     state: "shelter",
     stats: { health: 48, satiety: 53, hydration: 67, sanity: 58 },
     conditions: [
@@ -33,6 +35,7 @@ export const mockCharacters: GameCharacter[] = [
     name: "Hùng",
     initials: "HU",
     role: "Thám hiểm",
+    baseLoadoutSlots: 3,
     state: "shelter",
     stats: { health: 71, satiety: 38, hydration: 24, sanity: 63 },
     conditions: [
@@ -45,6 +48,7 @@ export const mockCharacters: GameCharacter[] = [
     name: "An",
     initials: "AN",
     role: "Kỹ thuật",
+    baseLoadoutSlots: 3,
     state: "shelter",
     stats: { health: 69, satiety: 42, hydration: 55, sanity: 39 },
     conditions: [{ label: "Lo âu", tone: "warning" }],
@@ -267,27 +271,157 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
   ],
 };
 
-export const mockCurrentEvent: CurrentEvent = {
-  id: "mysterious-knock",
-  title: "Tiếng gõ cửa",
-  description:
-    "Ba tiếng gõ ngắn vang lên từ phía bên kia cánh cửa. Một giọng nói khàn đặc xin đổi thông tin về khu cứu trợ lấy một chai nước sạch.",
-  category: "Gặp gỡ",
-  rarity: "rare",
-  choices: [
-    {
-      id: "trade-water",
-      label: "Đổi một chai nước",
-      description: "Mất 1 nước sạch và nghe thông tin của người lạ.",
-      requiredItemKey: "water",
-      requiredQuantity: 1,
-      variant: "primary",
-    },
-    {
-      id: "ignore",
-      label: "Giữ im lặng",
-      description: "Không tiêu hao tài nguyên, nhưng người lạ có thể không quay lại.",
-      variant: "secondary",
-    },
-  ],
-};
+export const mockCurrentEvents: CurrentEvent[] = [
+  {
+    id: "flickering-corridor",
+    title: "Ánh đèn chập chờn",
+    description:
+      "Dãy đèn ở hành lang phía Tây chớp tắt liên tục. Từ sau tấm bảng điện vang ra tiếng rè nhỏ và mùi dây dẫn nóng dần lan vào hầm.",
+    category: "Sinh hoạt",
+    rarity: "common",
+    day: 12,
+    location: "Hành lang phía Tây",
+    choices: [
+      {
+        id: "inspect-panel",
+        label: "Kiểm tra bảng điện",
+        result: {
+          title: "Một đầu dây bị lỏng",
+          description:
+            "An tìm thấy một đầu dây đã tuột khỏi chốt và cố định nó trước khi lớp cách điện nóng chảy.",
+          effects: [{ label: "An toàn hầm +1", tone: "positive" }],
+        },
+      },
+      {
+        id: "cut-corridor-power",
+        label: "Ngắt điện hành lang",
+        result: {
+          title: "Hành lang chìm vào bóng tối",
+          description:
+            "Tiếng rè biến mất ngay khi cầu dao được ngắt. Khu vực này sẽ cần một nguồn sáng khác nếu có người đi qua.",
+          effects: [{ label: "Điện dự trữ +1", tone: "positive" }],
+        },
+      },
+    ],
+  },
+  {
+    id: "mysterious-knock",
+    title: "Tiếng gõ cửa",
+    description:
+      "Ba tiếng gõ ngắn vang lên từ phía bên kia cánh cửa. Một giọng nói khàn đặc cất lên, xin cả nhóm cho một chai nước sạch.",
+    category: "Gặp gỡ",
+    rarity: "rare",
+    day: 12,
+    location: "Cửa hầm phía Bắc",
+    choices: [
+      {
+        id: "trade-water",
+        label: "Đưa nước cho người lạ",
+        requiredItem: {
+          itemKey: "water",
+          quantity: 1,
+          usage: "consume",
+        },
+        result: {
+          title: "Một thỏa thuận chóng vánh",
+          description:
+            "Người lạ nhận chai nước rồi để lại tần số phát sóng và vị trí của một trạm cứu trợ cũ.",
+          effects: [
+            { label: "Nước sạch −1", tone: "negative" },
+            { label: "Mở khóa: Trạm cứu trợ", tone: "neutral" },
+          ],
+        },
+      },
+      {
+        id: "ignore",
+        label: "Giữ im lặng",
+        result: {
+          title: "Tiếng bước chân xa dần",
+          description:
+            "Cả nhóm giữ im lặng. Sau vài phút, người bên ngoài rời khỏi cửa hầm và biến mất trong hành lang.",
+          effects: [],
+        },
+      },
+    ],
+  },
+  {
+    id: "broken-broadcast",
+    title: "Tín hiệu đứt quãng",
+    description:
+      "Một chuỗi âm thanh ngắt quãng phát ra từ góc liên lạc. Tín hiệu quá yếu để nghe rõ nếu không dùng radio dò lại tần số.",
+    category: "Tín hiệu",
+    rarity: "uncommon",
+    day: 12,
+    location: "Góc liên lạc",
+    choices: [
+      {
+        id: "scan-radio",
+        label: "Dò tín hiệu bằng radio",
+        requiredItem: {
+          itemKey: "radio",
+          quantity: 1,
+          usage: "retain",
+        },
+        result: {
+          title: "Một tọa độ mới",
+          description:
+            "Nhóm bắt được một đoạn phát sóng lặp lại, trong đó có tọa độ của một trạm truyền tin bỏ hoang.",
+          effects: [
+            { label: "Radio được giữ nguyên", tone: "neutral" },
+            { label: "Mở khóa: Trạm truyền tin", tone: "positive" },
+          ],
+        },
+      },
+      {
+        id: "dismiss-signal",
+        label: "Bỏ qua tín hiệu",
+        result: {
+          title: "Tín hiệu đã tắt",
+          description:
+            "Âm thanh yếu dần rồi biến mất. Nhóm quay lại những công việc còn dang dở.",
+          effects: [],
+        },
+      },
+    ],
+  },
+  {
+    id: "impossible-frequency",
+    title: "Tần số không tồn tại",
+    description:
+      "Chiếc radio tự bật giữa lúc cả hầm im lặng. Một chuỗi âm thanh đều đặn phát ra trên dải tần không được đánh dấu trong bất kỳ tài liệu nào.",
+    category: "Dị thường",
+    rarity: "ultra_rare",
+    day: 12,
+    location: "Phòng liên lạc",
+    choices: [
+      {
+        id: "record-frequency",
+        label: "Ghi lại tín hiệu",
+        requiredItem: {
+          itemKey: "radio",
+          quantity: 1,
+          usage: "retain",
+        },
+        result: {
+          title: "Một bản đồ bằng âm thanh",
+          description:
+            "Khi phát chậm đoạn ghi âm, cả nhóm nhận ra chuỗi tín hiệu mô tả khoảng cách và phương hướng tới một công trình nằm sâu dưới lòng đất.",
+          effects: [
+            { label: "Mở khóa: Trạm ngầm", tone: "neutral" },
+            { label: "Tinh thần nhóm −2", tone: "negative" },
+          ],
+        },
+      },
+      {
+        id: "disconnect-radio",
+        label: "Ngắt nguồn radio",
+        result: {
+          title: "Tín hiệu vẫn tiếp tục",
+          description:
+            "Radio đã mất nguồn nhưng chuỗi âm thanh vẫn kéo dài thêm vài giây trước khi dừng hẳn.",
+          effects: [{ label: "Tinh thần nhóm −4", tone: "negative" }],
+        },
+      },
+    ],
+  },
+];

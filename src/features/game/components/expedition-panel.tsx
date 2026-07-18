@@ -1,12 +1,5 @@
-import {
-  Backpack,
-  CircleDot,
-  EyeOff,
-  RadioTower,
-  ShieldAlert,
-} from "lucide-react";
+import { Backpack, EyeOff } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,18 +7,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ItemIcon } from "@/features/game/components/item-icon";
+import { ExpeditionCharacterOption } from "@/features/game/components/expedition-character-option";
+import { ExpeditionLoadoutSlot } from "@/features/game/components/expedition-loadout-slot";
+import {
+  getLoadoutSlotCapacity,
+  MAX_LOADOUT_SLOTS,
+  removeLoadoutSlot,
+  setLoadoutSlot,
+} from "@/features/game/expedition";
 import type { GameCharacter, InventoryItem } from "@/features/game/types";
-import { cn } from "@/lib/utils";
 
 interface ExpeditionPanelProps {
   characters: GameCharacter[];
   inventory: InventoryItem[];
   selectedCharacterId: string | null;
-  selectedLoadoutIds: string[];
+  selectedLoadoutIds: Array<string | null>;
   onSelectCharacter: (characterId: string) => void;
-  onToggleLoadout: (itemId: string, checked: boolean) => void;
+  onChangeLoadout: (itemIds: Array<string | null>) => void;
   onDepart: () => void;
 }
 
@@ -35,7 +33,7 @@ export function ExpeditionPanel({
   selectedCharacterId,
   selectedLoadoutIds,
   onSelectCharacter,
-  onToggleLoadout,
+  onChangeLoadout,
   onDepart,
 }: ExpeditionPanelProps) {
   const activeExpeditions = characters.filter(
@@ -49,170 +47,153 @@ export function ExpeditionPanel({
       item.condition === "intact" &&
       ["tool", "medical", "water"].includes(item.category),
   );
-  const canDepart = selectedCharacterId !== null;
+  const selectedCharacter = availableCharacters.find(
+    (character) => character.id === selectedCharacterId,
+  );
+  const slotCapacity = selectedCharacter
+    ? getLoadoutSlotCapacity(selectedCharacter)
+    : 0;
+  const overflowCount = selectedLoadoutIds
+    .slice(slotCapacity)
+    .filter((itemId) => itemId !== null).length;
+  const selectedItemCounts = selectedLoadoutIds.reduce((counts, itemId) => {
+    if (itemId === null) {
+      return counts;
+    }
+
+    counts.set(itemId, (counts.get(itemId) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
+  const hasUnavailableItems = Array.from(selectedItemCounts).some(
+    ([itemId, selectedCount]) => {
+      const inventoryItem = loadoutItems.find((item) => item.id === itemId);
+      return !inventoryItem || selectedCount > inventoryItem.quantity;
+    },
+  );
+  const canDepart =
+    selectedCharacter !== undefined &&
+    overflowCount === 0 &&
+    !hasUnavailableItems;
+  const departLabel = !selectedCharacter
+    ? "Chọn người đi"
+    : overflowCount > 0
+      ? `Bỏ bớt ${overflowCount} món`
+      : hasUnavailableItems
+        ? "Kiểm tra hành trang"
+        : "Cho xuất phát";
 
   return (
     <section className="space-y-5">
       <header>
-        <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          <RadioTower className="size-3.5" /> Bên ngoài
-        </div>
         <h2 className="text-2xl font-semibold tracking-tight">Thám hiểm</h2>
-        <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Chọn một người đủ khỏe và chỉ mang theo những vật tư thực sự cần thiết.
-        </p>
       </header>
 
-      {activeExpeditions.map((character) => (
-        <Card
-          key={character.id}
-          className="border-sky-300/15 bg-sky-300/5 shadow-none"
-        >
-          <CardHeader className="flex-row items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-xl bg-sky-300/10 font-mono text-xs text-sky-100">
-                {character.initials}
-              </span>
-              <div>
-                <CardTitle className="text-base">
-                  {character.name} đang ở bên ngoài
-                </CardTitle>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Chưa có tin tức. Hành trình chỉ được biết khi họ trở về.
-                </p>
-              </div>
-            </div>
-            <EyeOff className="mt-1 size-4 shrink-0 text-sky-200/70" />
-          </CardHeader>
-        </Card>
-      ))}
+      {activeExpeditions.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Đang ở bên ngoài
+          </p>
+          {activeExpeditions.map((character) => (
+            <Card
+              key={character.id}
+              size="sm"
+              className="bg-zinc-900/55 shadow-none"
+            >
+              <CardContent className="flex items-center gap-3">
+                <span className="grid size-9 place-items-center rounded-lg bg-white/6 font-mono text-xs">
+                  {character.initials}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{character.name}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Chưa có tin tức từ chuyến đi.
+                  </p>
+                </div>
+                <EyeOff className="size-4 text-zinc-500" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)]">
-        <Card className="border-white/8 bg-zinc-900/60 shadow-none">
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
+        <Card className="bg-zinc-900/55 shadow-none">
           <CardHeader>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Bước 1
-                </p>
-                <CardTitle className="mt-1 text-lg">Chọn người ra ngoài</CardTitle>
-              </div>
-              <Badge variant="secondary">
-                {availableCharacters.length} sẵn sàng
-              </Badge>
-            </div>
+            <CardTitle className="text-lg">Người đi</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {availableCharacters.map((character) => {
-              const isSelected = selectedCharacterId === character.id;
-              const averageCondition = Math.round(
-                (character.stats.health +
-                  character.stats.satiety +
-                  character.stats.hydration) /
-                  3,
-              );
-
-              return (
-                <button
-                  key={character.id}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => onSelectCharacter(character.id)}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    isSelected
-                      ? "border-zinc-400 bg-zinc-800"
-                      : "border-white/8 bg-zinc-950/30 hover:bg-zinc-800/60",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "grid size-9 shrink-0 place-items-center rounded-lg border font-mono text-xs",
-                      isSelected
-                        ? "border-zinc-500 bg-zinc-700"
-                        : "border-white/8 bg-zinc-900",
-                    )}
-                  >
-                    {character.initials}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">{character.name}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      Thể trạng {averageCondition}% · {character.role}
-                    </p>
-                  </div>
-                  <CircleDot
-                    className={cn(
-                      "size-4",
-                      isSelected ? "text-zinc-100" : "text-zinc-700",
-                    )}
-                  />
-                </button>
-              );
-            })}
+            {availableCharacters.map((character) => (
+              <ExpeditionCharacterOption
+                key={character.id}
+                character={character}
+                isSelected={selectedCharacterId === character.id}
+                onSelect={() => onSelectCharacter(character.id)}
+              />
+            ))}
           </CardContent>
         </Card>
 
-        <Card className="border-white/8 bg-zinc-900/60 shadow-none">
+        <Card className="bg-zinc-900/55 shadow-none">
           <CardHeader>
-            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Bước 2
-            </p>
-            <CardTitle className="text-lg">Chuẩn bị hành trang</CardTitle>
+            <CardTitle className="text-lg">Hành trang</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {loadoutItems.map((item) => {
-              const isChecked = selectedLoadoutIds.includes(item.id);
+          <CardContent>
+            <div className="space-y-2">
+              {Array.from({ length: MAX_LOADOUT_SLOTS }, (_, index) => {
+                const itemId = selectedLoadoutIds[index];
+                const item = loadoutItems.find(
+                  (loadoutItem) => loadoutItem.id === itemId,
+                );
 
-              return (
-                <label
-                  key={item.id}
-                  className="group flex cursor-pointer items-center gap-3 rounded-lg border border-white/8 bg-zinc-950/30 p-3 transition-colors hover:bg-zinc-800/60"
-                >
-                  <Checkbox
-                    checked={isChecked}
-                    onCheckedChange={(checked) =>
-                      onToggleLoadout(item.id, checked)
+                return (
+                  <ExpeditionLoadoutSlot
+                    key={`${selectedCharacterId ?? "none"}-${index}`}
+                    index={index}
+                    item={item}
+                    isLocked={!selectedCharacter || index >= slotCapacity}
+                    loadoutItems={loadoutItems}
+                    selectedItemCounts={selectedItemCounts}
+                    onSelect={(nextItemId) =>
+                      onChangeLoadout(
+                        setLoadoutSlot(
+                          selectedLoadoutIds,
+                          index,
+                          nextItemId,
+                        ),
+                      )
+                    }
+                    onRemove={() =>
+                      onChangeLoadout(
+                        removeLoadoutSlot(selectedLoadoutIds, index),
+                      )
                     }
                   />
-                  <span className="grid size-8 place-items-center rounded-lg bg-white/5 text-zinc-300">
-                    <ItemIcon icon={item.icon} className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
-                      {item.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      Có {item.quantity} trong kho
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-white/8 bg-zinc-900/60 shadow-none">
-        <CardContent className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-amber-300/10 text-amber-200">
-              <ShieldAlert className="size-4" />
-            </span>
-            <div>
-              <p className="font-medium">Mức nguy hiểm: Cao</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Thời gian trở về chưa xác định. Vật phẩm mang đi sẽ rời khỏi kho.
-              </p>
-            </div>
+      <Card className="sticky bottom-3 z-20 bg-zinc-900/95 shadow-xl backdrop-blur">
+        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="font-medium text-zinc-200">
+              {selectedCharacter
+                ? selectedCharacter.name
+                : "Chưa chọn người đi"}
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Thời gian trở về chưa xác định. Đồ mang theo sẽ tạm rời kho.
+            </p>
           </div>
           <Button
             size="lg"
             disabled={!canDepart}
-            className="shrink-0"
+            className="shrink-0 sm:min-w-40"
             onClick={onDepart}
           >
-            <Backpack /> Cho xuất phát
+            <Backpack /> {departLabel}
           </Button>
         </CardContent>
       </Card>
