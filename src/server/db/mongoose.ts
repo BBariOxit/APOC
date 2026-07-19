@@ -19,8 +19,13 @@ const cache = globalThis.apocMongooseCache ?? {
 globalThis.apocMongooseCache = cache;
 
 export async function connectToDatabase(): Promise<Mongoose> {
-  if (cache.connection) {
+  if (cache.connection?.connection.readyState === 1) {
     return cache.connection;
+  }
+
+  if (cache.connection) {
+    cache.connection = null;
+    cache.promise = null;
   }
 
   const uri = process.env.MONGODB_URI;

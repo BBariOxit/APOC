@@ -1,0 +1,102 @@
+import type { AdminResource } from "@/features/admin/types";
+
+export const resourceLabels: Record<AdminResource, string> = {
+  characters: "Nhân vật",
+  items: "Vật phẩm",
+  locations: "Địa điểm",
+  events: "Sự kiện",
+  ambients: "Diễn biến ngày",
+  endings: "Kết thúc",
+  achievements: "Thành tựu",
+};
+
+export const contentTemplates: Record<AdminResource, Record<string, unknown>> = {
+  characters: {
+    name: "Nhân vật mới",
+    description: "Mô tả nhân vật",
+    avatarUrl: "https://example.com/avatar.png",
+    baseStats: { health: 100, satiety: 100, hydration: 100, sanity: 100 },
+    baseLoadoutSlots: 4,
+    traits: [],
+  },
+  items: {
+    name: "Vật phẩm mới",
+    description: "Mô tả vật phẩm",
+    iconUrl: "https://example.com/item.png",
+    category: "tool",
+    stackable: false,
+    canBreak: false,
+    hidden: false,
+    tags: [],
+  },
+  locations: {
+    name: "Địa điểm mới",
+    description: "Mô tả địa điểm",
+    hidden: false,
+    dangerLevel: "medium",
+    travelDays: { min: 1, max: 3 },
+    tags: [],
+    eventPool: [{ eventKey: "location_event_key", weight: 1 }],
+  },
+  events: {
+    name: "Sự kiện mới",
+    description: "Mô tả sự kiện",
+    category: "daily",
+    delivery: "pending",
+    rarity: "common",
+    weight: 1,
+    hidden: false,
+    tags: [],
+    trigger: { mode: "random" },
+    exclusionEventKeys: [],
+    interaction: {
+      mode: "choices",
+      choices: [
+        {
+          key: "continue",
+          label: "Tiếp tục",
+          resolution: {
+            mode: "deterministic",
+            title: "Kết quả",
+            description: "Mô tả kết quả",
+            effects: [],
+          },
+        },
+      ],
+    },
+  },
+  ambients: {
+    name: "Diễn biến mới",
+    timeLabel: "Buổi sáng",
+    rarity: "common",
+    weight: 1,
+    hidden: false,
+    tags: [],
+    trigger: { mode: "random" },
+    exclusionAmbientKeys: [],
+    resolution: {
+      mode: "deterministic",
+      title: "Một ngày mới",
+      description: "Mô tả diễn biến",
+      effects: [],
+    },
+  },
+  endings: {
+    name: "Kết thúc mới",
+    description: "Mô tả kết thúc",
+    type: "neutral",
+    priority: 0,
+    hidden: false,
+    requirements: { type: "day_gte", value: 1 },
+  },
+  achievements: {
+    name: "Thành tựu mới",
+    description: "Mô tả thành tựu",
+    difficulty: "easy",
+    hidden: false,
+    progressType: "binary",
+    target: 1,
+    requirements: { type: "day_gte", value: 1 },
+    rewards: [],
+  },
+};

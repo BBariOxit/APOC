@@ -92,6 +92,8 @@ const runEventLogSchema = new Schema(
       enum: ["deterministic", "weighted"],
     },
     resultKey: { type: String, trim: true },
+    resultTitle: { type: String, trim: true, maxlength: 160 },
+    resultDescription: { type: String, trim: true, maxlength: 2_000 },
     randomRolls: { type: [randomRollSchema], required: true, default: [] },
     appliedEffects: {
       type: [appliedEffectSchema],

@@ -46,6 +46,38 @@ const baseStatsSchema = z
 
 export const gameRuleDefinitionContentSchema = z
   .object({
+    runSetup: z
+      .object({
+        characterKeys: z
+          .array(contentKeySchema)
+          .max(4)
+          .refine((values) => new Set(values).size === values.length, {
+            message: "starting character keys must be unique",
+          }),
+        inventory: z
+          .array(
+            z
+              .object({
+                itemKey: contentKeySchema,
+                intactQuantity: nonNegativeIntegerSchema,
+                brokenQuantity: nonNegativeIntegerSchema,
+              })
+              .strict()
+              .refine(
+                ({ intactQuantity, brokenQuantity }) =>
+                  intactQuantity + brokenQuantity > 0,
+                { message: "an inventory entry must contain at least one item" },
+              ),
+          )
+          .max(64)
+          .refine(
+            (entries) =>
+              new Set(entries.map(({ itemKey }) => itemKey)).size ===
+              entries.length,
+            { message: "starting inventory item keys must be unique" },
+          ),
+      })
+      .strict(),
     statRules: z
       .object({ criticalBelow: z.number().int().min(1).max(100) })
       .strict(),
@@ -56,6 +88,8 @@ export const gameRuleDefinitionContentSchema = z
         ambientChance: z.number().min(0).max(1),
         foodUnitsPerCharacter: nonNegativeIntegerSchema,
         waterUnitsPerCharacter: nonNegativeIntegerSchema,
+        hungerStatLoss: z.number().int().min(0).max(100),
+        thirstStatLoss: z.number().int().min(0).max(100),
       })
       .strict(),
     expeditionRules: z
