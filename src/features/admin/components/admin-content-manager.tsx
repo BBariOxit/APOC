@@ -647,7 +647,7 @@ export function AdminContentManager({ username }: { username: string }) {
           <section className="min-w-0 flex-1">
             <div className="mx-auto max-w-5xl">
               <div className="sticky top-14 z-20 flex items-center gap-3 border-b border-white/8 bg-zinc-950/95 px-4 py-3 backdrop-blur"><h1 className="mr-auto font-medium">Game rules</h1>{dirty && <span className="text-xs text-amber-400">Chưa lưu</span>}{isDraft && <Button size="sm" onClick={saveRules} disabled={saving}><Save />Lưu</Button>}</div>
-              <div className="p-4 sm:p-6"><RulesEditor value={editorContent} onChange={setEditorContent} disabled={!isDraft} /></div>
+              <div className="p-4 sm:p-6"><RulesEditor value={editorContent} onChange={setEditorContent} catalog={catalog} disabled={!isDraft} /></div>
             </div>
           </section>
         ) : (

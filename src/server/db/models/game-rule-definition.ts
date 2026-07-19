@@ -15,6 +15,37 @@ const integerValidator = {
   message: "{PATH} must be an integer",
 };
 
+const runSetupSchema = new Schema(
+  {
+    characterKeys: { type: [String], required: true, default: [] },
+    inventory: {
+      type: [
+        new Schema(
+          {
+            itemKey: { type: String, required: true, trim: true },
+            intactQuantity: {
+              type: Number,
+              required: true,
+              min: 0,
+              validate: integerValidator,
+            },
+            brokenQuantity: {
+              type: Number,
+              required: true,
+              min: 0,
+              validate: integerValidator,
+            },
+          },
+          { _id: false },
+        ),
+      ],
+      required: true,
+      default: [],
+    },
+  },
+  { _id: false },
+);
+
 const statRulesSchema = new Schema(
   {
     criticalBelow: {
@@ -66,6 +97,22 @@ const dailyRulesSchema = new Schema(
       required: true,
       default: 1,
       min: 0,
+      validate: integerValidator,
+    },
+    hungerStatLoss: {
+      type: Number,
+      required: true,
+      default: 20,
+      min: 0,
+      max: 100,
+      validate: integerValidator,
+    },
+    thirstStatLoss: {
+      type: Number,
+      required: true,
+      default: 25,
+      min: 0,
+      max: 100,
       validate: integerValidator,
     },
   },
@@ -125,6 +172,7 @@ const gameRuleDefinitionSchema = new Schema(
       ref: "ContentVersion",
       required: true,
     },
+    runSetup: { type: runSetupSchema, required: true, default: () => ({}) },
     statRules: { type: statRulesSchema, required: true },
     dailyRules: { type: dailyRulesSchema, required: true },
     expeditionRules: { type: expeditionRulesSchema, required: true },
@@ -140,6 +188,7 @@ gameRuleDefinitionSchema.index({ contentVersionId: 1 }, { unique: true });
 gameRuleDefinitionSchema.pre("validate", function validateContent() {
   const definition = this.toObject();
   const result = gameRuleDefinitionContentSchema.safeParse({
+    runSetup: definition.runSetup,
     statRules: definition.statRules,
     dailyRules: definition.dailyRules,
     expeditionRules: definition.expeditionRules,

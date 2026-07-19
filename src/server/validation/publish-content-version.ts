@@ -247,6 +247,7 @@ export async function validateContentVersionForPublish(
   } else {
     const rules = ruleDefinitions[0];
     const parsed = gameRuleDefinitionContentSchema.safeParse({
+      runSetup: rules.runSetup,
       statRules: rules.statRules,
       dailyRules: rules.dailyRules,
       expeditionRules: rules.expeditionRules,
@@ -259,6 +260,74 @@ export async function validateContentVersionForPublish(
           path: issue.path.join("."),
           message: issue.message,
         });
+      }
+    } else {
+      if (parsed.data.runSetup.characterKeys.length !== 4) {
+        issues.push({
+          severity: "error",
+          entityType: "rules",
+          path: "runSetup.characterKeys",
+          message: "a run requires exactly four starting characters",
+        });
+      }
+
+      const enabledCharacterKeys = new Set(
+        characters.filter(({ enabled }) => enabled).map(({ key }) => key),
+      );
+      for (const characterKey of parsed.data.runSetup.characterKeys) {
+        if (!enabledCharacterKeys.has(characterKey)) {
+          issues.push({
+            severity: "error",
+            entityType: "rules",
+            path: "runSetup.characterKeys",
+            message: `starting character ${characterKey} does not exist or is disabled`,
+          });
+        }
+      }
+
+      const enabledItems = new Map(
+        items.filter(({ enabled }) => enabled).map((item) => [item.key, item]),
+      );
+      for (const entry of parsed.data.runSetup.inventory) {
+        const item = enabledItems.get(entry.itemKey);
+        if (!item) {
+          issues.push({
+            severity: "error",
+            entityType: "rules",
+            path: "runSetup.inventory",
+            message: `starting item ${entry.itemKey} does not exist or is disabled`,
+          });
+          continue;
+        }
+        if (!item.canBreak && entry.brokenQuantity > 0) {
+          issues.push({
+            severity: "error",
+            entityType: "rules",
+            path: "runSetup.inventory",
+            message: `starting item ${entry.itemKey} cannot be broken`,
+          });
+        }
+        const total = entry.intactQuantity + entry.brokenQuantity;
+        if (
+          item.stackable &&
+          typeof item.maxStack === "number" &&
+          total > item.maxStack
+        ) {
+          issues.push({
+            severity: "error",
+            entityType: "rules",
+            path: "runSetup.inventory",
+            message: `starting item ${entry.itemKey} exceeds maxStack ${item.maxStack}`,
+          });
+        }
+        if (!item.stackable && total > 1) {
+          issues.push({
+            severity: "error",
+            entityType: "rules",
+            path: "runSetup.inventory",
+            message: `non-stackable starting item ${entry.itemKey} cannot have quantity above one`,
+          });
+        }
       }
     }
   }
@@ -278,13 +347,13 @@ export async function validateContentVersionForPublish(
   }
 
   const available: CollectedReferences = {
-    achievementKeys: new Set(achievements.map(({ key }) => key)),
-    ambientKeys: new Set(ambientDefinitions.map(({ key }) => key)),
-    characterKeys: new Set(characters.map(({ key }) => key)),
-    endingKeys: new Set(endings.map(({ key }) => key)),
-    eventKeys: new Set(events.map(({ key }) => key)),
-    itemKeys: new Set(items.map(({ key }) => key)),
-    locationKeys: new Set(locations.map(({ key }) => key)),
+    achievementKeys: new Set(achievements.filter(({ enabled }) => enabled).map(({ key }) => key)),
+    ambientKeys: new Set(ambientDefinitions.filter(({ enabled }) => enabled).map(({ key }) => key)),
+    characterKeys: new Set(characters.filter(({ enabled }) => enabled).map(({ key }) => key)),
+    endingKeys: new Set(endings.filter(({ enabled }) => enabled).map(({ key }) => key)),
+    eventKeys: new Set(events.filter(({ enabled }) => enabled).map(({ key }) => key)),
+    itemKeys: new Set(items.filter(({ enabled }) => enabled).map(({ key }) => key)),
+    locationKeys: new Set(locations.filter(({ enabled }) => enabled).map(({ key }) => key)),
   };
 
   for (const character of characters) {

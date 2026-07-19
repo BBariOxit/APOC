@@ -148,6 +148,7 @@ export async function createContentVersion(
             [
               {
                 contentVersionId: version._id,
+                runSetup: sourceRules.runSetup,
                 statRules: sourceRules.statRules,
                 dailyRules: sourceRules.dailyRules,
                 expeditionRules: sourceRules.expeditionRules,
@@ -160,6 +161,7 @@ export async function createContentVersion(
             [
               {
                 contentVersionId: version._id,
+                runSetup: {},
                 statRules: {},
                 dailyRules: {},
                 expeditionRules: {},
@@ -192,6 +194,7 @@ export async function createContentVersion(
           [
             {
               contentVersionId: version._id,
+              runSetup: {},
               statRules: {},
               dailyRules: {},
               expeditionRules: {},
@@ -433,6 +436,7 @@ export async function getGameRules(contentVersionId: string) {
     id: rules._id.toString(),
     revision: rules.__v ?? 0,
     content: {
+      runSetup: rules.runSetup,
       statRules: rules.statRules,
       dailyRules: rules.dailyRules,
       expeditionRules: rules.expeditionRules,

@@ -5,6 +5,7 @@ import { isValidObjectId, mongo, Error as MongooseError } from "mongoose";
 import { ZodError } from "zod";
 
 import { requireAdmin, type AdminPrincipal } from "@/server/auth/admin";
+import { requirePlayer, type PlayerPrincipal } from "@/server/auth/player";
 import { ApiError } from "@/server/http/api-error";
 
 export type AdminRouteHandler<TContext = unknown> = (
@@ -64,7 +65,7 @@ export function jsonNoContent(): Response {
   return new Response(null, { status: 204 });
 }
 
-function errorResponse(error: unknown): Response {
+export function errorResponse(error: unknown): Response {
   if (error instanceof ApiError) {
     return NextResponse.json(
       {
@@ -135,6 +136,23 @@ function errorResponse(error: unknown): Response {
     },
     { status: 500 },
   );
+}
+
+export type PlayerRouteHandler<TContext = unknown> = (
+  player: PlayerPrincipal,
+  context: TContext,
+) => Promise<Response>;
+
+export async function withPlayer<TContext>(
+  context: TContext,
+  handler: PlayerRouteHandler<TContext>,
+): Promise<Response> {
+  try {
+    const player = await requirePlayer();
+    return await handler(player, context);
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
 
 export async function withAdmin<TContext>(
