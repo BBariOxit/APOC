@@ -42,7 +42,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Mật khẩu", type: "password" },
       },
       async authorize(credentials, request) {
-        const parsed = credentialsSchema.safeParse(credentials);
+        const parsed = credentialsSchema.safeParse({
+          identifier: credentials?.identifier,
+          password: credentials?.password,
+        });
         if (!parsed.success) {
           return null;
         }
