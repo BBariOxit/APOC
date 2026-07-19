@@ -1,6 +1,6 @@
 import "server-only";
 
-import { isValidObjectId } from "mongoose";
+import { isValidObjectId, type ClientSession } from "mongoose";
 import type { z } from "zod";
 
 import { connectToDatabase } from "@/server/db/mongoose";
@@ -184,6 +184,7 @@ function addMissingReferenceIssues(
 
 export async function validateContentVersionForPublish(
   contentVersionId: string,
+  session?: ClientSession,
 ): Promise<ContentPublishValidationResult> {
   const issues: ContentPublishIssue[] = [];
 
@@ -213,15 +214,15 @@ export async function validateContentVersionForPublish(
     endings,
     achievements,
   ] = await Promise.all([
-    ContentVersionModel.findById(contentVersionId).lean().exec(),
-    GameRuleDefinitionModel.find({ contentVersionId }).lean().exec(),
-    CharacterDefinitionModel.find({ contentVersionId }).lean().exec(),
-    ItemDefinitionModel.find({ contentVersionId }).lean().exec(),
-    LocationDefinitionModel.find({ contentVersionId }).lean().exec(),
-    EventDefinitionModel.find({ contentVersionId }).lean().exec(),
-    AmbientDefinitionModel.find({ contentVersionId }).lean().exec(),
-    EndingDefinitionModel.find({ contentVersionId }).lean().exec(),
-    AchievementDefinitionModel.find({ contentVersionId }).lean().exec(),
+    ContentVersionModel.findById(contentVersionId).session(session ?? null).lean().exec(),
+    GameRuleDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
+    CharacterDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
+    ItemDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
+    LocationDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
+    EventDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
+    AmbientDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
+    EndingDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
+    AchievementDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
   ]);
 
   if (!version) {
