@@ -1,8 +1,10 @@
-import { loadEnvConfig } from "@next/env";
+import nextEnv from "@next/env";
 import { hash } from "bcryptjs";
 import mongoose from "mongoose";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+
+const { loadEnvConfig } = nextEnv;
 
 loadEnvConfig(process.cwd());
 
