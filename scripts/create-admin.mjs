@@ -4,53 +4,14 @@ import mongoose from "mongoose";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
+import { assertStrongPassword, readHidden } from "./admin-password.mjs";
+
 const { loadEnvConfig } = nextEnv;
 
 loadEnvConfig(process.cwd());
 
 function normalizeUsernameKey(value) {
   return value.trim().normalize("NFKC").toLocaleLowerCase("en-US");
-}
-
-async function readHidden(prompt) {
-  if (!input.isTTY || typeof input.setRawMode !== "function") {
-    throw new Error("An interactive terminal is required to enter the password safely");
-  }
-
-  output.write(prompt);
-  input.setRawMode(true);
-  input.resume();
-  input.setEncoding("utf8");
-
-  return new Promise((resolve, reject) => {
-    let value = "";
-    function cleanup() {
-      input.setRawMode(false);
-      input.pause();
-      input.removeListener("data", onData);
-      output.write("\n");
-    }
-    function onData(character) {
-      if (character === "\r" || character === "\n") {
-        cleanup();
-        resolve(value);
-        return;
-      }
-      if (character === "\u0003") {
-        cleanup();
-        reject(new Error("Cancelled"));
-        return;
-      }
-      if (character === "\u007f" || character === "\b") {
-        value = value.slice(0, -1);
-        return;
-      }
-      if (/^[\x20-\x7E]$/.test(character)) {
-        value += character;
-      }
-    }
-    input.on("data", onData);
-  });
 }
 
 async function main() {
@@ -71,18 +32,7 @@ async function main() {
   if (!/^[\p{L}\p{N}_-]{3,32}$/u.test(username)) {
     throw new Error("Username must be 3-32 letters, numbers, underscores or hyphens");
   }
-  if (
-    password.length < 12 ||
-    password.length > 128 ||
-    !/[a-z]/.test(password) ||
-    !/[A-Z]/.test(password) ||
-    !/[0-9]/.test(password) ||
-    !/[^A-Za-z0-9]/.test(password)
-  ) {
-    throw new Error(
-      "Password must be 12-128 chars and contain lower, upper, number and symbol",
-    );
-  }
+  assertStrongPassword(password);
   if (password !== confirmation) {
     throw new Error("Passwords do not match");
   }
