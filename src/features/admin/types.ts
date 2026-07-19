@@ -49,3 +49,13 @@ export interface AuditLogDto {
   before?: unknown;
   after?: unknown;
 }
+
+export interface CatalogItemDto {
+  key: string;
+  name?: string;
+  enabled: boolean;
+}
+
+export type ContentCatalogDto = Record<AdminResource, CatalogItemDto[]>;
+
+export type ContentValue = Record<string, unknown>;
