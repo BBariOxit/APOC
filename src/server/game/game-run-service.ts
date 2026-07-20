@@ -180,7 +180,7 @@ function eventChoices(
           : (entry?.intactQuantity ?? 0) + (entry?.brokenQuantity ?? 0);
       const available = quantity >= branch.quantity && evaluateRule(branch.requirements, state);
       return {
-        key: `item:${branch.itemKey}`,
+        key: `item:${branch.key}`,
         label: `Dùng ${items.get(branch.itemKey)?.name ?? branch.itemKey}`,
         description: `Cần ${branch.quantity} · đang có ${quantity}`,
         available,
@@ -536,7 +536,7 @@ export async function resolveGameEvent(
       try {
         resolution = resolveEvent(state, definition, instanceId, {
           ...(command.intentKey === "fallback" ? { useFallback: true } : {}),
-          ...(command.intentKey.startsWith("item:") ? { itemKey: command.intentKey.slice(5) } : {}),
+          ...(command.intentKey.startsWith("item:") ? { itemBranchKey: command.intentKey.slice(5) } : {}),
           ...(!command.intentKey.startsWith("item:") && command.intentKey !== "fallback" ? { choiceKey: command.intentKey } : {}),
         });
       } catch (error) {
@@ -552,7 +552,8 @@ export async function resolveGameEvent(
         runId: run._id, userId, contentVersionId: run.contentVersionId, engineVersion: ENGINE_VERSION,
         commandId: command.commandId, sequence: nextRevision, day: state.day, action: "event_choice",
         eventInstanceId: instanceId, eventKey: definition.key,
-        choiceKey: resolution.choiceKey, selectedItemKey: resolution.selectedItemKey, fallbackUsed: resolution.fallbackUsed,
+        choiceKey: resolution.choiceKey, selectedItemKey: resolution.selectedItemKey,
+        itemBranchKey: resolution.itemBranchKey, fallbackUsed: resolution.fallbackUsed,
         resolutionMode: resolution.resolutionMode, resultKey: resolution.resultKey,
         resultTitle: resolution.title, resultDescription: resolution.description,
         randomRolls: resolution.randomRolls, appliedEffects, stateHash: stateHash(state),

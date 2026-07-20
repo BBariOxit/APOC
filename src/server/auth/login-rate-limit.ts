@@ -34,11 +34,12 @@ function digest(value: string): string {
   return createHmac("sha256", secret).update(value).digest("hex");
 }
 
+function identifierKey(identifier: string): string {
+  return digest(`identifier:${identifier.toLowerCase()}`);
+}
+
 function keys(identifier: string, request: Request): string[] {
-  return [
-    digest(`identifier:${identifier.toLowerCase()}`),
-    digest(`ip:${clientIp(request)}`),
-  ];
+  return [identifierKey(identifier), digest(`ip:${clientIp(request)}`)];
 }
 
 async function collection() {
@@ -113,10 +114,9 @@ export async function recordLoginFailure(
   );
 }
 
-export async function clearLoginFailures(
-  identifier: string,
-  request: Request,
-): Promise<void> {
+export async function clearLoginFailures(identifier: string): Promise<void> {
   const target = await collection();
-  await target.deleteMany({ key: { $in: keys(identifier, request) } });
+  // A successful account login must not reset the shared IP counter. Otherwise
+  // an attacker can use one valid account to erase failures for every username.
+  await target.deleteOne({ key: identifierKey(identifier) });
 }

@@ -73,7 +73,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        await clearLoginFailures(identifier, request);
+        await clearLoginFailures(identifier);
 
         await UserModel.updateOne(
           { _id: user._id, status: "active" },

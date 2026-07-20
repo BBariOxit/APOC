@@ -408,12 +408,24 @@ export function applyEffects(
   return { appliedEffects, signals };
 }
 
-function eventCanOccur(event: EventDefinitionLike, state: RuntimeState): boolean {
+function eventCanOccur(
+  event: EventDefinitionLike,
+  state: RuntimeState,
+  definitionsByKey: ReadonlyMap<string, EventDefinitionLike>,
+): boolean {
   const trigger = event.trigger;
   const count = state.eventState.occurredCounts[event.key] ?? 0;
   const lastDay = state.eventState.lastOccurredDay[event.key];
+  const hasMutexConflict = Boolean(
+    event.mutexGroup &&
+      state.eventState.pendingEvents.some(
+        ({ eventKey }) =>
+          definitionsByKey.get(eventKey)?.mutexGroup === event.mutexGroup,
+      ),
+  );
   return event.enabled &&
     event.delivery === "pending" &&
+    !hasMutexConflict &&
     !state.eventState.blockedEventKeys.includes(event.key) &&
     !state.eventState.pendingEvents.some(({ eventKey }) => eventKey === event.key) &&
     (trigger.minDay === undefined || state.day >= trigger.minDay) &&
@@ -451,13 +463,13 @@ export function generatePendingEvents(
   for (const queued of due) {
     if (state.eventState.pendingEvents.length >= maximum) break;
     const event = byKey.get(queued.eventKey);
-    if (event && eventCanOccur(event, state)) addPendingEvent(state, event, instanceId);
+    if (event && eventCanOccur(event, state, byKey)) addPendingEvent(state, event, instanceId);
     consumedQueued.add(queued);
   }
   state.eventState.queuedEvents = state.eventState.queuedEvents.filter((entry) => !consumedQueued.has(entry));
 
   const fixed = definitions
-    .filter((event) => event.trigger.mode === "fixed_day" && event.trigger.fixedDay === state.day && eventCanOccur(event, state))
+    .filter((event) => event.trigger.mode === "fixed_day" && event.trigger.fixedDay === state.day && eventCanOccur(event, state, byKey))
     .sort((left, right) => left.key.localeCompare(right.key));
   for (const event of fixed) {
     if (state.eventState.pendingEvents.length >= maximum) break;
@@ -465,7 +477,7 @@ export function generatePendingEvents(
   }
 
   while (state.eventState.pendingEvents.length < maximum) {
-    const candidates = definitions.filter((event) => event.trigger.mode === "random" && eventCanOccur(event, state));
+    const candidates = definitions.filter((event) => event.trigger.mode === "random" && eventCanOccur(event, state, byKey));
     if (candidates.length === 0) break;
     const { entry, roll } = weightedPick(candidates, state, `event:${state.day}`, (event) => event.key);
     rolls.push(roll);
@@ -521,10 +533,11 @@ export function resolveEvent(
   state: RuntimeState,
   definition: EventDefinitionLike,
   instanceId: string,
-  intent: { choiceKey?: string; itemKey?: string; useFallback?: boolean },
+  intent: { choiceKey?: string; itemBranchKey?: string; useFallback?: boolean },
 ): {
   choiceKey?: string;
   selectedItemKey?: string;
+  itemBranchKey?: string;
   fallbackUsed?: boolean;
   resolutionMode: "deterministic" | "weighted";
   resultKey?: string;
@@ -541,6 +554,7 @@ export function resolveEvent(
   let resolution: ResolutionLike;
   let choiceKey: string | undefined;
   let selectedItemKey: string | undefined;
+  let itemBranchKey: string | undefined;
   let fallbackUsed: boolean | undefined;
   if (definition.interaction.mode === "choices") {
     const normalAvailable = definition.interaction.choices.filter((choice) => !choice.fallbackOnly && evaluateRule(choice.requirements, state));
@@ -561,12 +575,15 @@ export function resolveEvent(
       fallbackUsed = true;
       resolution = definition.interaction.noItemBranch.resolution;
     } else {
-      const branch = definition.interaction.itemBranches.find((candidate) => candidate.itemKey === intent.itemKey);
+      const branch = definition.interaction.itemBranches.find(
+        (candidate) => candidate.key === intent.itemBranchKey,
+      );
       if (!branch || !evaluateRule(branch.requirements, state)) throw new Error("item branch is not available");
       const item = inventory.find(({ itemKey }) => itemKey === branch.itemKey);
       const quantity = branch.condition === "broken" ? item?.brokenQuantity ?? 0 : branch.condition === "intact" ? item?.intactQuantity ?? 0 : (item?.intactQuantity ?? 0) + (item?.brokenQuantity ?? 0);
       if (quantity < branch.quantity) throw new Error("item branch is not available");
       selectedItemKey = branch.itemKey;
+      itemBranchKey = branch.key;
       resolution = branch.resolution;
     }
   } else {
@@ -601,6 +618,7 @@ export function resolveEvent(
   return {
     choiceKey,
     selectedItemKey,
+    itemBranchKey,
     fallbackUsed,
     resolutionMode: resolution.mode,
     resultKey,
