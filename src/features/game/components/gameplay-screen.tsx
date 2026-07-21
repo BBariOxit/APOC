@@ -213,7 +213,6 @@ function mapEvents(run: GameRunDto): CurrentEvent[] {
     category: event.category,
     rarity: event.rarity,
     day: event.generatedDay,
-    location: "Hầm trú ẩn",
     choices: event.choices.map((choice) => ({
       id: choice.key,
       label: choice.label,
@@ -246,7 +245,6 @@ export function GameplayScreen() {
     Array<string | null>
   >(() => Array.from({ length: MAX_LOADOUT_SLOTS }, () => null));
   const [careRequest, setCareRequest] = useState<CareRequest | null>(null);
-  const [completedCareActions, setCompletedCareActions] = useState<string[]>([]);
   const [hasUnreadReturnReport, setHasUnreadReturnReport] = useState(true);
 
   const loadRun = useCallback(async () => {
@@ -456,29 +454,10 @@ export function GameplayScreen() {
     setCareRequest({ character, action });
   }
 
-  function handleCareReturnedCharacter() {
-    if (!returnJourney) {
-      return;
-    }
-
-    const character = characters.find(
-      (item) => item.id === returnJourney.characterId,
-    );
-
-    if (character) {
-      handleCare(character, "hydrate");
-    }
-  }
-
   function handleApplyCareItem(item: InventoryItem) {
     if (!careRequest) {
       return;
     }
-
-    const careKey = `${careRequest.character.id}:${careRequest.action}`;
-    setCompletedCareActions((current) =>
-      Array.from(new Set([...current, careKey])),
-    );
 
     toast.success(`Đã dùng ${item.name} cho ${careRequest.character.name}`);
     setCareRequest(null);
@@ -612,13 +591,7 @@ export function GameplayScreen() {
                 <TabsContent value="journey">
                   <ReturnJourneyPanel
                     report={returnJourney}
-                    needsCare={
-                      !completedCareActions.includes(
-                        `${returnJourney.characterId}:hydrate`,
-                      )
-                    }
                     onBackToDaily={() => handleNavigate("daily")}
-                    onCareCharacter={handleCareReturnedCharacter}
                   />
                 </TabsContent>
               )}

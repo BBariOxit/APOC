@@ -110,7 +110,7 @@ Các mode trigger ban đầu:
 
 Độ hiếm gồm bốn cấp `common` (Thường), `uncommon` (Ít gặp), `rare` (Hiếm) và `ultra_rare` (Cực hiếm). Rarity là nhãn về tần suất xuất hiện, không cam kết phần thưởng hoặc mức nguy hiểm. Xác suất thực tế vẫn dùng `weight` sau khi engine đã lọc requirements, cooldown, giới hạn số lần và nhóm loại trừ.
 
-UI luôn hiện tên rarity bằng text, không chỉ dựa vào màu. Queue card chỉ giữ title, badge rarity và trạng thái đã xử lý; không lặp icon chung, location hoặc chevron. Title được xuống tối đa hai dòng, còn location chỉ xuất hiện trong event detail. Event đang mở đặt rarity cạnh category. Layout và choice card không đổi theo rarity, chỉ event shell, badge và accent thay đổi có kiểm soát: xám cho Thường, xanh sky cho Ít gặp, tím violet cho Hiếm và vàng amber cho Cực hiếm. Hiếm/Cực hiếm có thể có glow hoặc entrance motion nhẹ nhưng không dùng animation lặp gây nhiễu, và màu rarity không được áp lên từng choice vì có thể ám chỉ outcome.
+UI luôn hiện tên rarity bằng text, không chỉ dựa vào màu. Queue card chỉ giữ title, badge rarity và trạng thái đã xử lý; không lặp icon chung, location hoặc chevron. Title được xuống tối đa hai dòng. Event đang mở chỉ hiện rarity phía trên title; category, ngày phát sinh và location là metadata nội bộ nên không lặp lại trong phần chi tiết. Layout và choice card không đổi theo rarity, chỉ event shell, badge và accent thay đổi có kiểm soát: xám cho Thường, xanh sky cho Ít gặp, tím violet cho Hiếm và vàng amber cho Cực hiếm. Hiếm/Cực hiếm có thể có glow hoặc entrance motion nhẹ nhưng không dùng animation lặp gây nhiễu, và màu rarity không được áp lên từng choice vì có thể ám chỉ outcome.
 
 Gameplay runtime lấy giới hạn event từ `dailyRules.maxEventsPerDay`; UI chỉ render queue server trả về và không có chế độ showcase làm sai giới hạn này.
 
@@ -165,6 +165,8 @@ Khi nhân vật trở về:
 2. Tab Hành trình chỉ là read model để kể lại kết quả; việc đọc tab không kích hoạt effect.
 3. Báo cáo tồn tại trong ngày trở về, sau đó được archive vào lịch sử thám hiểm.
 4. Chỉ log đã được công bố mới được gửi cho client; active expedition không được làm lộ journal entries.
+
+Phần đầu báo cáo chỉ hiện nhân vật, số ngày bên ngoài và ngày trở về. Không lưu hoặc hiển thị câu summary/condition tự do vì trạng thái chăm sóc hiện tại thuộc tab Nhân vật và có thể đổi sau khi báo cáo được tạo. Ba nhóm kết quả phải derive từ `summary`: vật phẩm mang về, tổn thất và location thực sự được khám phá; không thêm route/discovery chỉ có ở presentation. Nhật ký hiện ngày hành trình, title/text snapshot, tên location và effect đã áp dụng. UI không cần `kind` riêng chỉ để chọn icon. Báo cáo cũng không đặt CTA chăm sóc trực tiếp cho tới khi care mutation phía server tồn tại.
 
 ### 2.6. Ending
 

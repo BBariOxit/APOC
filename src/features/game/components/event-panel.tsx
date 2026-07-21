@@ -406,17 +406,17 @@ export function EventPanel({
         >
           <div className={cn("h-0.5", activeRarity.accent)} />
           <CardHeader className="px-5 pb-5 pt-6 sm:px-6">
-            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              <span>{activeEvent.category}</span>
-              <span aria-hidden="true">·</span>
-              <span className={activeRarity.text}>{activeRarity.label}</span>
+            <div
+              className={cn(
+                "text-xs font-medium uppercase tracking-[0.14em]",
+                activeRarity.text,
+              )}
+            >
+              {activeRarity.label}
             </div>
             <CardTitle className="mt-2 text-2xl tracking-tight sm:text-3xl">
               {activeEvent.title}
             </CardTitle>
-            <p className="font-mono text-xs text-muted-foreground">
-              Ngày {activeEvent.day} · {activeEvent.location}
-            </p>
           </CardHeader>
 
           <CardContent className="space-y-6 px-5 pb-6 sm:px-6">

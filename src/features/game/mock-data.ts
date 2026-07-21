@@ -200,6 +200,19 @@ export const mockDailyUpdates: DailyUpdate[] = [
 
 export const mockPreviousDayInventoryChanges: DailyUpdate[] = [
   {
+    id: "day-11-supplies-gained",
+    kind: "outcome",
+    label: "Vật tư nhận được",
+    title: "Đã bổ sung vật tư vào kho",
+    description:
+      "Vật tư Hùng mang về đã được kiểm kê và chuyển vào kho của hầm.",
+    effects: [
+      { label: "Đồ hộp +2", tone: "positive" },
+      { label: "Nước sạch +1", tone: "positive" },
+      { label: "Bản đồ cũ +1", tone: "positive" },
+    ],
+  },
+  {
     id: "day-11-consumption",
     kind: "outcome",
     label: "Tiêu hao hằng ngày",
@@ -221,9 +234,6 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
   departedDay: 8,
   returnedDay: 12,
   durationDays: 4,
-  condition: "Kiệt sức · Mất nước",
-  summary:
-    "Hùng mang về một số vật tư và phát hiện tuyến đường mới. Anh đang mất nước và cần được chăm sóc.",
   gains: [
     { label: "+2 Đồ hộp", tone: "positive" },
     { label: "+1 Nước sạch", tone: "positive" },
@@ -235,13 +245,11 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
   ],
   discoveries: [
     { label: "Mở khóa: Kho hàng số 4", tone: "neutral" },
-    { label: "Tuyến đường phía đông", tone: "neutral" },
   ],
   entries: [
     {
       id: "journey-day-1",
       day: 1,
-      kind: "search",
       title: "Những căn nhà im lặng",
       location: "Khu dân cư phía đông",
       description:
@@ -251,7 +259,6 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
     {
       id: "journey-day-2",
       day: 2,
-      kind: "encounter",
       title: "Người lạ bên đường",
       location: "Đường vành đai",
       description:
@@ -265,7 +272,6 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
     {
       id: "journey-day-3",
       day: 3,
-      kind: "discovery",
       title: "Trạm tiếp tế",
       location: "Kho hàng số 4",
       description:
@@ -275,7 +281,6 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
     {
       id: "journey-day-4",
       day: 4,
-      kind: "danger",
       title: "Đường về",
       location: "Lối hầm phía bắc",
       description:
@@ -297,7 +302,6 @@ export const mockCurrentEvents: CurrentEvent[] = [
     category: "Sinh hoạt",
     rarity: "common",
     day: 12,
-    location: "Hành lang phía Tây",
     choices: [
       {
         id: "inspect-panel",
@@ -329,7 +333,6 @@ export const mockCurrentEvents: CurrentEvent[] = [
     category: "Gặp gỡ",
     rarity: "rare",
     day: 12,
-    location: "Cửa hầm phía Bắc",
     choices: [
       {
         id: "trade-water",
@@ -369,7 +372,6 @@ export const mockCurrentEvents: CurrentEvent[] = [
     category: "Tín hiệu",
     rarity: "uncommon",
     day: 12,
-    location: "Góc liên lạc",
     choices: [
       {
         id: "scan-radio",
@@ -409,7 +411,6 @@ export const mockCurrentEvents: CurrentEvent[] = [
     category: "Dị thường",
     rarity: "ultra_rare",
     day: 12,
-    location: "Phòng liên lạc",
     choices: [
       {
         id: "record-frequency",
