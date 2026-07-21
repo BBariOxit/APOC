@@ -88,15 +88,6 @@ export interface DailyUpdate {
   destination?: GameTab;
 }
 
-export interface DailyTask {
-  id: string;
-  type: "event" | "care";
-  title: string;
-  description: string;
-  actionLabel: string;
-  destination: GameTab;
-}
-
 export interface GameEffect {
   label: string;
   tone: "positive" | "negative" | "warning" | "neutral";

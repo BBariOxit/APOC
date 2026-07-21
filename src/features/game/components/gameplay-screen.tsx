@@ -56,7 +56,6 @@ import {
 import type {
   CurrentEvent,
   DailyUpdate,
-  DailyTask,
   GameCharacter,
   GameTab,
   InventoryItem,
@@ -353,31 +352,6 @@ export function GameplayScreen() {
         careLabels[careRequest.action].categories.includes(item.category),
     );
   }, [careRequest, inventory]);
-  const dailyTasks = useMemo<DailyTask[]>(() => {
-    const tasks: DailyTask[] = [];
-
-    if (unresolvedEvents.length > 0) {
-      const [firstEvent] = unresolvedEvents;
-
-      tasks.push({
-        id: "pending-event",
-        type: "event",
-        title:
-          unresolvedEvents.length === 1
-            ? firstEvent.title
-            : `${unresolvedEvents.length} sự kiện chờ xử lý`,
-        description:
-          unresolvedEvents.length === 1
-            ? "Cần đưa ra lựa chọn trước khi qua ngày."
-            : "Cần xử lý lần lượt trước khi qua ngày.",
-        actionLabel: "Xử lý",
-        destination: "event",
-      });
-    }
-
-    return tasks;
-  }, [unresolvedEvents]);
-
   const visibleSelectedItemId = inventory.some((item) => item.id === selectedItemId)
     ? selectedItemId
     : inventory[0]?.id ?? null;
@@ -565,7 +539,7 @@ export function GameplayScreen() {
         day={day}
         aliveCount={aliveCount}
         canEndDay={canEndDay}
-        pendingEventCount={unresolvedEvents.length}
+        hasPendingEvents={unresolvedEvents.length > 0}
         authenticated={authenticated}
         isAdmin={isAdmin}
         onLogin={() => setAuthDialogOpen(true)}
@@ -609,9 +583,10 @@ export function GameplayScreen() {
                     >
                       <Icon /> {tab.label}
                       {tab.value === "event" && unresolvedEvents.length > 0 && (
-                        <span className="grid min-w-4 place-items-center rounded-full bg-amber-300/15 px-1 font-mono text-[10px] leading-4 text-amber-200">
-                          {unresolvedEvents.length}
-                        </span>
+                        <span
+                          className="size-1.5 rounded-full bg-amber-300"
+                          aria-label="Có sự kiện chưa xử lý"
+                        />
                       )}
                       {tab.value === "journey" && hasUnreadReturnReport && (
                         <span className="size-1.5 rounded-full bg-emerald-300" />
@@ -626,7 +601,6 @@ export function GameplayScreen() {
                   day={day}
                   ambients={ambientUpdates}
                   previousDayChanges={previousDayChanges}
-                  pendingEvents={dailyTasks}
                   expeditionUpdates={expeditionUpdates}
                   recentResults={recentResults}
                   onNavigate={handleNavigate}

@@ -1,7 +1,6 @@
 import {
   BookOpen,
   ChevronRight,
-  CircleAlert,
   CircleCheck,
   Ear,
   Footprints,
@@ -12,7 +11,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import type {
-  DailyTask,
   DailyUpdate,
   GameEffect,
   GameTab,
@@ -23,7 +21,6 @@ interface DailyPanelProps {
   day: number;
   ambients: DailyUpdate[];
   previousDayChanges: DailyUpdate[];
-  pendingEvents: DailyTask[];
   expeditionUpdates: DailyUpdate[];
   recentResults: DailyUpdate[];
   onNavigate: (tab: GameTab) => void;
@@ -56,7 +53,6 @@ export function DailyPanel({
   day,
   ambients,
   previousDayChanges,
-  pendingEvents,
   expeditionUpdates,
   recentResults,
   onNavigate,
@@ -81,19 +77,6 @@ export function DailyPanel({
           <BookOpen /> Nhật ký
         </Button>
       </header>
-
-      {pendingEvents.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-amber-300/20 bg-amber-300/5">
-          {pendingEvents.map((task, index) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              withDivider={index > 0}
-              onAction={() => onNavigate(task.destination)}
-            />
-          ))}
-        </div>
-      )}
 
       {hasUpdates ? (
         <>
@@ -136,11 +119,11 @@ export function DailyPanel({
             </DailySection>
           )}
         </>
-      ) : pendingEvents.length === 0 ? (
+      ) : (
         <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 px-4 py-5 text-sm text-zinc-500">
           <CircleCheck className="size-4" /> Chưa có diễn biến mới trong ngày này.
         </div>
-      ) : null}
+      )}
     </section>
   );
 }
@@ -189,33 +172,6 @@ function UpdateList({
           onNavigate={onNavigate}
         />
       ))}
-    </div>
-  );
-}
-
-function TaskRow({
-  task,
-  onAction,
-  withDivider,
-}: {
-  task: DailyTask;
-  onAction: () => void;
-  withDivider: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "flex flex-col gap-3 border-l-2 border-l-amber-300/60 px-4 py-3.5 sm:flex-row sm:items-center sm:gap-4 sm:px-5",
-        withDivider && "border-t border-t-white/6",
-      )}
-    >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <CircleAlert className="size-4 shrink-0 text-amber-200" />
-        <h2 className="font-medium text-amber-50">{task.title}</h2>
-      </div>
-      <Button className="self-start sm:self-auto" variant="outline" size="sm" onClick={onAction}>
-        {task.actionLabel} <ChevronRight />
-      </Button>
     </div>
   );
 }

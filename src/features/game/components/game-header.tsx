@@ -31,7 +31,7 @@ interface GameHeaderProps {
   day: number;
   aliveCount: number;
   canEndDay: boolean;
-  pendingEventCount: number;
+  hasPendingEvents: boolean;
   authenticated: boolean;
   isAdmin: boolean;
   onLogin: () => void;
@@ -44,7 +44,7 @@ export function GameHeader({
   day,
   aliveCount,
   canEndDay,
-  pendingEventCount,
+  hasPendingEvents,
   authenticated,
   isAdmin,
   onLogin,
@@ -92,7 +92,7 @@ export function GameHeader({
           </Button>
         )}
 
-        {authenticated && pendingEventCount > 0 && (
+        {authenticated && hasPendingEvents && (
           <Button
             variant="ghost"
             size="sm"
@@ -100,12 +100,7 @@ export function GameHeader({
             className="relative text-amber-200/80 hover:bg-amber-300/10 hover:text-amber-100"
           >
             <CircleAlert />
-            <span className="hidden lg:inline">
-              {pendingEventCount} sự kiện chưa xử lý
-            </span>
-            <span className="grid min-w-4 place-items-center rounded-full bg-white/8 px-1 font-mono text-[10px] leading-4 lg:hidden">
-              {pendingEventCount}
-            </span>
+            <span className="hidden lg:inline">Có sự kiện chưa xử lý</span>
           </Button>
         )}
 
