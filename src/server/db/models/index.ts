@@ -21,6 +21,10 @@ export {
   type ContentVersion,
 } from "./content-version";
 export {
+  ConditionDefinitionModel,
+  type ConditionDefinition,
+} from "./condition-definition";
+export {
   EndingDefinitionModel,
   type EndingDefinition,
 } from "./ending-definition";

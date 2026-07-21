@@ -7,6 +7,7 @@ import {
   AchievementDefinitionModel,
   AmbientDefinitionModel,
   CharacterDefinitionModel,
+  ConditionDefinitionModel,
   EndingDefinitionModel,
   EventDefinitionModel,
   ItemDefinitionModel,
@@ -16,6 +17,7 @@ import {
   achievementDefinitionContentSchema,
   ambientDefinitionContentSchema,
   characterDefinitionContentSchema,
+  conditionDefinitionContentSchema,
   endingDefinitionContentSchema,
   eventDefinitionContentSchema,
   itemDefinitionContentSchema,
@@ -24,6 +26,7 @@ import {
 
 export const contentResourceSchema = z.enum([
   "characters",
+  "conditions",
   "items",
   "locations",
   "events",
@@ -66,6 +69,15 @@ export const contentResourceConfigs: Record<
     filterFields: [],
     referenceField: "characterKey",
   },
+  conditions: {
+    entityType: "condition",
+    model: ConditionDefinitionModel as unknown as ContentModel,
+    schema: conditionDefinitionContentSchema,
+    contentFields: ["name", "description", "tone", "derivation"],
+    filterFields: ["tone", "derivation.type"],
+    referenceField: "condition",
+    referenceArrayFields: ["removesConditionKeys"],
+  },
   items: {
     entityType: "item",
     model: ItemDefinitionModel as unknown as ContentModel,
@@ -81,6 +93,7 @@ export const contentResourceConfigs: Record<
       "hidden",
       "tags",
       "accountUnlockRule",
+      "care",
     ],
     filterFields: ["category", "hidden"],
     referenceField: "itemKey",

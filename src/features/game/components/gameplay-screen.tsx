@@ -149,22 +149,19 @@ async function gameRequest<T>(url: string, init?: RequestInit): Promise<T> {
   return payload.data as T;
 }
 
-function displayLabel(value: string): string {
-  return value.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
-}
-
 function mapCharacters(run: GameRunDto): GameCharacter[] {
   return run.characters.map((character) => ({
     id: character.key,
     name: character.name,
     initials: character.name.slice(0, 2).toLocaleUpperCase("vi"),
     role: character.description || "Người sống sót",
-    baseLoadoutSlots: 3,
+    baseLoadoutSlots: character.baseLoadoutSlots,
     state: character.state,
     stats: character.stats,
     conditions: character.conditions.map((condition) => ({
-      label: displayLabel(condition.key),
-      tone: condition.severity && condition.severity >= 2 ? "danger" : "warning",
+      key: condition.key,
+      label: condition.label,
+      tone: condition.tone,
     })),
   }));
 }
@@ -192,7 +189,8 @@ function mapInventory(run: GameRunDto): InventoryItem[] {
       description: item.description,
       category,
       icon: itemIcon(item),
-      usable: ["food", "water", "medical"].includes(category),
+      usable: Boolean(item.careAction),
+      careAction: item.careAction,
     };
     return [
       ...(item.intactQuantity > 0
@@ -347,7 +345,7 @@ export function GameplayScreen() {
       (item) =>
         item.condition === "intact" &&
         item.quantity > 0 &&
-        careLabels[careRequest.action].categories.includes(item.category),
+        item.careAction === careRequest.action,
     );
   }, [careRequest, inventory]);
   const visibleSelectedItemId = inventory.some((item) => item.id === selectedItemId)
@@ -454,13 +452,39 @@ export function GameplayScreen() {
     setCareRequest({ character, action });
   }
 
-  function handleApplyCareItem(item: InventoryItem) {
+  async function handleApplyCareItem(item: InventoryItem) {
     if (!careRequest) {
       return;
     }
-
-    toast.success(`Đã dùng ${item.name} cho ${careRequest.character.name}`);
-    setCareRequest(null);
+    const activeRun = activeRunOrPrompt();
+    if (!activeRun) return;
+    setMutating(true);
+    try {
+      const nextRun = await gameRequest<GameRunDto>(
+        `/api/game-runs/${activeRun.id}/care`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            commandId: crypto.randomUUID(),
+            expectedRevision: activeRun.revision,
+            characterKey: careRequest.character.id,
+            itemKey: item.key,
+            action: careRequest.action,
+          }),
+        },
+      );
+      setRun(nextRun);
+      setCareRequest(null);
+      toast.success(nextRun.lastResult?.title ?? `Đã dùng ${item.name}`, {
+        description: nextRun.lastResult?.description,
+      });
+    } catch (caught) {
+      const error = caught as GameApiError;
+      toast.error(error.message);
+      if (error.code === "EDIT_CONFLICT") await loadRun();
+    } finally {
+      setMutating(false);
+    }
   }
 
   function handleUseInventoryItem(item: InventoryItem) {
@@ -694,7 +718,7 @@ export function GameplayScreen() {
                         Còn {item.quantity} trong kho
                       </p>
                     </div>
-                    <Button size="sm" onClick={() => handleApplyCareItem(item)}>
+                    <Button size="sm" disabled={mutating} onClick={() => handleApplyCareItem(item)}>
                       Sử dụng
                     </Button>
                   </div>

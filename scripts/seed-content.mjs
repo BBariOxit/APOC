@@ -82,6 +82,21 @@ async function main() {
       );
       await database.collection("character_definitions").insertMany(characters, { session });
 
+      const conditions = [
+        ["wounded", "Bị thương", "Vết thương do sự kiện gây ra.", "danger", { type: "runtime" }],
+        ["anxious", "Lo âu", "Lo âu do sự kiện gây ra.", "warning", { type: "runtime" }],
+        ["thirsty", "Đang khát", "Nước cơ thể xuống thấp.", "warning", { type: "stat_below", stat: "hydration", threshold: 35 }],
+        ["dehydrated", "Mất nước", "Nước cơ thể ở mức nguy hiểm.", "danger", { type: "stat_below", stat: "hydration", threshold: 25 }],
+        ["hungry", "Đang đói", "Dinh dưỡng xuống thấp.", "warning", { type: "stat_below", stat: "satiety", threshold: 35 }],
+        ["starving", "Kiệt sức vì đói", "Dinh dưỡng ở mức nguy hiểm.", "danger", { type: "stat_below", stat: "satiety", threshold: 15 }],
+        ["distressed", "Lo âu", "Tinh thần xuống thấp.", "warning", { type: "stat_below", stat: "sanity", threshold: 35 }],
+        ["critical_health", "Sức khỏe nguy cấp", "Sức khỏe ở mức nguy hiểm.", "danger", { type: "stat_below", stat: "health", threshold: 35 }],
+        ["resting", "Cần nghỉ ngơi", "Chưa thể tiếp tục đi thám hiểm.", "neutral", { type: "expedition_cooldown" }],
+      ].map(([key, name, description, tone, derivation]) =>
+        withMetadata(versionId, admin._id, key, { name, description, tone, derivation }),
+      );
+      await database.collection("condition_definitions").insertMany(conditions, { session });
+
       const itemInputs = [
         ["canned_food", "Đồ hộp", "Một khẩu phần thức ăn bảo quản lâu.", "food", true, 24, false, ["ration"]],
         ["clean_water", "Nước sạch", "Một đơn vị nước uống đã lọc.", "water", true, 24, false, ["ration"]],
@@ -99,6 +114,9 @@ async function main() {
           canBreak,
           hidden: false,
           tags,
+          ...(key === "canned_food" ? { care: { action: "feed", statChanges: { satiety: 25 }, removesConditionKeys: [] } } : {}),
+          ...(key === "clean_water" ? { care: { action: "hydrate", statChanges: { hydration: 30 }, removesConditionKeys: [] } } : {}),
+          ...(key === "medicine" ? { care: { action: "heal", statChanges: { health: 25 }, removesConditionKeys: ["wounded"] } } : {}),
         }),
       );
       await database.collection("item_definitions").insertMany(items, { session });

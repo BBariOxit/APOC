@@ -8,6 +8,7 @@ import {
   AchievementDefinitionModel,
   AmbientDefinitionModel,
   CharacterDefinitionModel,
+  ConditionDefinitionModel,
   ContentVersionModel,
   EndingDefinitionModel,
   EventDefinitionModel,
@@ -19,6 +20,7 @@ import {
   achievementDefinitionContentSchema,
   ambientDefinitionContentSchema,
   characterDefinitionContentSchema,
+  conditionDefinitionContentSchema,
   endingDefinitionContentSchema,
   eventDefinitionContentSchema,
   gameRuleDefinitionContentSchema,
@@ -30,6 +32,7 @@ type ContentEntityType =
   | "content_version"
   | "rules"
   | "character"
+  | "condition"
   | "item"
   | "location"
   | "event"
@@ -54,6 +57,7 @@ interface CollectedReferences {
   achievementKeys: Set<string>;
   ambientKeys: Set<string>;
   characterKeys: Set<string>;
+  conditionKeys: Set<string>;
   endingKeys: Set<string>;
   eventKeys: Set<string>;
   itemKeys: Set<string>;
@@ -77,6 +81,7 @@ function collectContentReferences(value: unknown): CollectedReferences {
     achievementKeys: new Set(),
     ambientKeys: new Set(),
     characterKeys: new Set(),
+    conditionKeys: new Set(),
     endingKeys: new Set(),
     eventKeys: new Set(),
     itemKeys: new Set(),
@@ -93,6 +98,17 @@ function collectContentReferences(value: unknown): CollectedReferences {
     }
 
     const record = current as Record<string, unknown>;
+    if (
+      (record.type === "add_condition" || record.type === "remove_condition") &&
+      typeof record.condition === "string"
+    ) {
+      references.conditionKeys.add(record.condition);
+    }
+    if (Array.isArray(record.removesConditionKeys)) {
+      record.removesConditionKeys.forEach((key) => {
+        if (typeof key === "string") references.conditionKeys.add(key);
+      });
+    }
     for (const [field, collection] of Object.entries(referenceFields)) {
       if (typeof record[field] === "string") {
         references[collection].add(record[field]);
@@ -163,6 +179,7 @@ function addMissingReferenceIssues(
     achievementKeys: "achievement",
     ambientKeys: "ambient",
     characterKeys: "character",
+    conditionKeys: "condition",
     endingKeys: "ending",
     eventKeys: "event",
     itemKeys: "item",
@@ -207,6 +224,7 @@ export async function validateContentVersionForPublish(
     version,
     ruleDefinitions,
     characters,
+    conditions,
     items,
     locations,
     events,
@@ -217,6 +235,7 @@ export async function validateContentVersionForPublish(
     ContentVersionModel.findById(contentVersionId).session(session ?? null).lean().exec(),
     GameRuleDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
     CharacterDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
+    ConditionDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
     ItemDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
     LocationDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
     EventDefinitionModel.find({ contentVersionId }).session(session ?? null).lean().exec(),
@@ -350,11 +369,36 @@ export async function validateContentVersionForPublish(
     achievementKeys: new Set(achievements.filter(({ enabled }) => enabled).map(({ key }) => key)),
     ambientKeys: new Set(ambientDefinitions.filter(({ enabled }) => enabled).map(({ key }) => key)),
     characterKeys: new Set(characters.filter(({ enabled }) => enabled).map(({ key }) => key)),
+    conditionKeys: new Set(conditions.filter(({ enabled }) => enabled).map(({ key }) => key)),
     endingKeys: new Set(endings.filter(({ enabled }) => enabled).map(({ key }) => key)),
     eventKeys: new Set(events.filter(({ enabled }) => enabled).map(({ key }) => key)),
     itemKeys: new Set(items.filter(({ enabled }) => enabled).map(({ key }) => key)),
     locationKeys: new Set(locations.filter(({ enabled }) => enabled).map(({ key }) => key)),
   };
+  const runtimeConditionKeys = new Set(
+    conditions
+      .filter(({ enabled, derivation }) => enabled && derivation?.type === "runtime")
+      .map(({ key }) => key),
+  );
+  for (const [entityType, definitions] of [
+    ["item", items],
+    ["event", events],
+    ["ambient", ambientDefinitions],
+    ["achievement", achievements],
+  ] as const) {
+    for (const definition of definitions) {
+      for (const conditionKey of collectContentReferences(definition).conditionKeys) {
+        if (available.conditionKeys.has(conditionKey) && !runtimeConditionKeys.has(conditionKey)) {
+          issues.push({
+            severity: "error",
+            entityType,
+            entityKey: definition.key,
+            message: `condition ${conditionKey} is derived and cannot be added or removed by effects`,
+          });
+        }
+      }
+    }
+  }
 
   for (const character of characters) {
     const parsed = characterDefinitionContentSchema.safeParse({
@@ -366,6 +410,16 @@ export async function validateContentVersionForPublish(
       traits: character.traits,
     });
     pushZodIssues(issues, "character", character.key, parsed);
+  }
+
+  for (const condition of conditions) {
+    const parsed = conditionDefinitionContentSchema.safeParse({
+      name: condition.name,
+      description: condition.description,
+      tone: condition.tone,
+      derivation: condition.derivation,
+    });
+    pushZodIssues(issues, "condition", condition.key, parsed);
   }
 
   for (const item of items) {
@@ -380,6 +434,7 @@ export async function validateContentVersionForPublish(
       hidden: item.hidden,
       tags: item.tags,
       accountUnlockRule: item.accountUnlockRule,
+      care: item.care,
     });
     if (pushZodIssues(issues, "item", item.key, parsed) && parsed.success) {
       addMissingReferenceIssues(

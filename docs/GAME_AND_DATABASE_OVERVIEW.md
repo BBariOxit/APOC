@@ -166,7 +166,7 @@ Khi nhân vật trở về:
 3. Báo cáo tồn tại trong ngày trở về, sau đó được archive vào lịch sử thám hiểm.
 4. Chỉ log đã được công bố mới được gửi cho client; active expedition không được làm lộ journal entries.
 
-Phần đầu báo cáo chỉ hiện nhân vật, số ngày bên ngoài và ngày trở về. Không lưu hoặc hiển thị câu summary/condition tự do vì trạng thái chăm sóc hiện tại thuộc tab Nhân vật và có thể đổi sau khi báo cáo được tạo. Ba nhóm kết quả phải derive từ `summary`: vật phẩm mang về, tổn thất và location thực sự được khám phá; không thêm route/discovery chỉ có ở presentation. Nhật ký hiện ngày hành trình, title/text snapshot, tên location và effect đã áp dụng. UI không cần `kind` riêng chỉ để chọn icon. Báo cáo cũng không đặt CTA chăm sóc trực tiếp cho tới khi care mutation phía server tồn tại.
+Phần đầu báo cáo chỉ hiện nhân vật, số ngày bên ngoài và ngày trở về. Không lưu hoặc hiển thị câu summary/condition tự do vì trạng thái chăm sóc hiện tại thuộc tab Nhân vật và có thể đổi sau khi báo cáo được tạo. Ba nhóm kết quả phải derive từ `summary`: vật phẩm mang về, tổn thất và location thực sự được khám phá; không thêm route/discovery chỉ có ở presentation. Nhật ký hiện ngày hành trình, title/text snapshot, tên location và effect đã áp dụng. UI không cần `kind` riêng chỉ để chọn icon. Care là command độc lập trên tab Nhân vật, không được kích hoạt ngầm khi mở báo cáo.
 
 ### 2.6. Ending
 

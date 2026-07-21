@@ -12,6 +12,7 @@ async function main() {
   const { UserModel } = await import("@/server/db/models");
   const {
     advanceGameDay,
+    careForGameCharacter,
     createGameRun,
     resolveGameEvent,
   } = await import("@/server/game/game-run-service");
@@ -33,6 +34,17 @@ async function main() {
     if (run.characters.length !== 4) {
       throw new Error("run did not initialize four characters");
     }
+    const careItem = run.inventory.find(({ careAction, intactQuantity }) => careAction && intactQuantity > 0);
+    if (!careItem?.careAction) throw new Error("run has no database-configured care item");
+    const careCharacter = run.characters.find(({ state }) => state === "shelter");
+    if (!careCharacter) throw new Error("run has no character available for care");
+    run = await careForGameCharacter(userId, run.id, {
+      commandId: crypto.randomUUID(),
+      expectedRevision: run.revision,
+      characterKey: careCharacter.key,
+      itemKey: careItem.key,
+      action: careItem.careAction,
+    });
 
     for (const event of [...run.pendingEvents]) {
       const intent = event.choices.find(({ available }) => available);

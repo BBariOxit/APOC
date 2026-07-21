@@ -793,6 +793,45 @@ export const characterDefinitionContentSchema = z
   })
   .strict();
 
+export const conditionDefinitionContentSchema = z
+  .object({
+    name: z.string().trim().min(1).max(160),
+    description: z.string().trim().min(1).max(2_000),
+    tone: z.enum(["neutral", "warning", "danger"]),
+    derivation: z.discriminatedUnion("type", [
+      z.object({ type: z.literal("runtime") }).strict(),
+      z
+        .object({
+          type: z.literal("stat_below"),
+          stat: z.enum(["health", "satiety", "hydration", "sanity"]),
+          threshold: z.number().int().min(1).max(100),
+        })
+        .strict(),
+      z.object({ type: z.literal("expedition_cooldown") }).strict(),
+    ]),
+  })
+  .strict();
+
+const itemCareSchema = z
+  .object({
+    action: z.enum(["feed", "hydrate", "heal"]),
+    statChanges: z
+      .object({
+        health: z.number().int().min(1).max(100).optional(),
+        satiety: z.number().int().min(1).max(100).optional(),
+        hydration: z.number().int().min(1).max(100).optional(),
+        sanity: z.number().int().min(1).max(100).optional(),
+      })
+      .strict(),
+    removesConditionKeys: uniqueContentKeysSchema,
+  })
+  .strict()
+  .refine(
+    ({ statChanges, removesConditionKeys }) =>
+      Object.keys(statChanges).length > 0 || removesConditionKeys.length > 0,
+    { message: "care must change at least one stat or remove one condition" },
+  );
+
 export const itemDefinitionContentSchema = z
   .object({
     name: z.string().trim().min(1).max(160),
@@ -812,6 +851,7 @@ export const itemDefinitionContentSchema = z
     hidden: z.boolean(),
     tags: uniqueContentKeysSchema,
     accountUnlockRule: ruleSchema.optional(),
+    care: itemCareSchema.optional(),
   })
   .strict()
   .superRefine((item, context) => {
@@ -827,6 +867,18 @@ export const itemDefinitionContentSchema = z
         code: "custom",
         path: ["maxStack"],
         message: "non-stackable items must not define maxStack",
+      });
+    }
+    const categoryByAction = {
+      feed: "food",
+      hydrate: "water",
+      heal: "medical",
+    } as const;
+    if (item.care && item.category !== categoryByAction[item.care.action]) {
+      context.addIssue({
+        code: "custom",
+        path: ["care", "action"],
+        message: `${item.care.action} care requires category ${categoryByAction[item.care.action]}`,
       });
     }
   });

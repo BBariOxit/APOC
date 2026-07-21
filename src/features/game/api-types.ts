@@ -3,6 +3,7 @@ export interface GameRunCharacterDto {
   name: string;
   description: string;
   avatarUrl: string;
+  baseLoadoutSlots: number;
   state: "shelter" | "expedition" | "missing" | "dead" | "insane";
   stats: {
     health: number;
@@ -12,6 +13,8 @@ export interface GameRunCharacterDto {
   };
   conditions: Array<{
     key: string;
+    label: string;
+    tone: "neutral" | "warning" | "danger";
     severity?: number;
     remainingDays?: number;
   }>;
@@ -24,6 +27,7 @@ export interface GameRunInventoryDto {
   iconUrl: string;
   category: "food" | "water" | "tool" | "medical" | "weapon" | "quest";
   canBreak: boolean;
+  careAction?: "feed" | "hydrate" | "heal";
   intactQuantity: number;
   brokenQuantity: number;
 }

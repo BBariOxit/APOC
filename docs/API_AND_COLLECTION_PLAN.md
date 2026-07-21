@@ -115,7 +115,7 @@ Payload care chỉ gửi intent:
 ```json
 {
   "commandId": "uuid",
-  "revision": 12,
+  "expectedRevision": 12,
   "characterKey": "lan",
   "action": "hydrate",
   "itemKey": "clean_water"

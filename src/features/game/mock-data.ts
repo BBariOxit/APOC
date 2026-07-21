@@ -15,7 +15,7 @@ export const mockCharacters: GameCharacter[] = [
     baseLoadoutSlots: 4,
     state: "shelter",
     stats: { health: 78, satiety: 61, hydration: 34, sanity: 72 },
-    conditions: [{ label: "Đang khát", tone: "warning" }],
+    conditions: [{ key: "thirsty", label: "Đang khát", tone: "warning" }],
   },
   {
     id: "lan",
@@ -26,8 +26,8 @@ export const mockCharacters: GameCharacter[] = [
     state: "shelter",
     stats: { health: 48, satiety: 53, hydration: 67, sanity: 58 },
     conditions: [
-      { label: "Bị thương", tone: "danger" },
-      { label: "Cần nghỉ ngơi", tone: "neutral" },
+      { key: "wounded", label: "Bị thương", tone: "danger" },
+      { key: "resting", label: "Cần nghỉ ngơi", tone: "neutral" },
     ],
   },
   {
@@ -39,8 +39,8 @@ export const mockCharacters: GameCharacter[] = [
     state: "shelter",
     stats: { health: 71, satiety: 38, hydration: 24, sanity: 63 },
     conditions: [
-      { label: "Vừa trở về", tone: "neutral" },
-      { label: "Mất nước", tone: "danger" },
+      { key: "resting", label: "Vừa trở về", tone: "neutral" },
+      { key: "dehydrated", label: "Mất nước", tone: "danger" },
     ],
   },
   {
@@ -51,7 +51,7 @@ export const mockCharacters: GameCharacter[] = [
     baseLoadoutSlots: 3,
     state: "shelter",
     stats: { health: 69, satiety: 42, hydration: 55, sanity: 39 },
-    conditions: [{ label: "Lo âu", tone: "warning" }],
+    conditions: [{ key: "distressed", label: "Lo âu", tone: "warning" }],
   },
 ];
 
@@ -68,6 +68,7 @@ export const mockInventory: InventoryItem[] = [
     quantity: 6,
     icon: "can",
     usable: true,
+    careAction: "feed",
   },
   {
     id: "water-intact",
@@ -81,6 +82,7 @@ export const mockInventory: InventoryItem[] = [
     quantity: 4,
     icon: "water",
     usable: true,
+    careAction: "hydrate",
   },
   {
     id: "medicine-intact",
@@ -94,6 +96,7 @@ export const mockInventory: InventoryItem[] = [
     quantity: 1,
     icon: "medicine",
     usable: true,
+    careAction: "heal",
   },
   {
     id: "bandage-intact",
@@ -107,6 +110,7 @@ export const mockInventory: InventoryItem[] = [
     quantity: 2,
     icon: "bandage",
     usable: true,
+    careAction: "heal",
   },
   {
     id: "radio-intact",

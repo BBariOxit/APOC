@@ -97,8 +97,37 @@ function CharacterEditor({ value, onChange, disabled }: EditorProps) {
   );
 }
 
+function ConditionEditor({ value, onChange, disabled }: EditorProps) {
+  const derivation = asContentValue(value.derivation);
+  const type = typeof derivation.type === "string" ? derivation.type : "runtime";
+  return (
+    <>
+      <CommonFields value={value} onChange={onChange} disabled={disabled} />
+      <FormSection title="Cách phát sinh">
+        <Grid>
+          <SelectField label="Mức hiển thị" value={value.tone} disabled={disabled} onChange={(next) => onChange(withField(value, "tone", next))} options={["neutral", "warning", "danger"].map((item) => ({ value: item, label: item }))} />
+          <SelectField label="Nguồn dữ liệu" value={type} disabled={disabled} onChange={(next) => onChange(withField(value, "derivation", next === "stat_below" ? { type: next, stat: "health", threshold: 35 } : { type: next }))} options={[{ value: "runtime", label: "Event / hiệu ứng" }, { value: "stat_below", label: "Chỉ số thấp" }, { value: "expedition_cooldown", label: "Đang hồi sức sau hành trình" }]} />
+        </Grid>
+        {type === "stat_below" && (
+          <Grid>
+            <SelectField label="Chỉ số" value={derivation.stat} disabled={disabled} onChange={(next) => onChange(withField(value, "derivation", withField(derivation, "stat", next)))} options={["health", "satiety", "hydration", "sanity"].map((item) => ({ value: item, label: item }))} />
+            <NumberField label="Hiện khi thấp hơn" value={derivation.threshold} min={1} max={100} disabled={disabled} onChange={(next) => onChange(withField(value, "derivation", withField(derivation, "threshold", next)))} />
+          </Grid>
+        )}
+      </FormSection>
+    </>
+  );
+}
+
 function ItemEditor({ value, onChange, catalog, disabled }: EditorProps) {
   const stackable = value.stackable === true;
+  const care = value.care ? asContentValue(value.care) : null;
+  const statChanges = care ? asContentValue(care.statChanges) : {};
+  const careDefaults = value.category === "food"
+    ? { action: "feed", statChanges: { satiety: 20 }, removesConditionKeys: [] }
+    : value.category === "water"
+      ? { action: "hydrate", statChanges: { hydration: 20 }, removesConditionKeys: [] }
+      : { action: "heal", statChanges: { health: 20 }, removesConditionKeys: [] };
   return (
     <>
       <CommonFields value={value} onChange={onChange} disabled={disabled} />
@@ -114,6 +143,20 @@ function ItemEditor({ value, onChange, catalog, disabled }: EditorProps) {
           <ToggleField label="Ẩn" checked={value.hidden === true} disabled={disabled} onChange={(next) => onChange(withField(value, "hidden", next))} />
         </div>
         {stackable && <NumberField label="Stack tối đa" value={value.maxStack} min={1} max={999} disabled={disabled} onChange={(next) => onChange(withField(value, "maxStack", next))} />}
+      </FormSection>
+      <FormSection title="Chăm sóc nhân vật">
+        <ToggleField label="Có thể sử dụng" checked={Boolean(care)} disabled={disabled} onChange={(next) => onChange(next ? { ...value, category: ["food", "water", "medical"].includes(String(value.category)) ? value.category : "medical", care: careDefaults } : withField(value, "care", undefined))} />
+        {care && (
+          <>
+            <SelectField label="Thao tác" value={care.action} disabled={disabled} onChange={(next) => onChange(withField(value, "care", { ...care, action: next }))} options={[{ value: "feed", label: "Ăn" }, { value: "hydrate", label: "Uống" }, { value: "heal", label: "Chữa trị" }]} />
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {(["health", "satiety", "hydration", "sanity"] as const).map((stat) => (
+                <NumberField key={stat} label={`+ ${stat}`} value={statChanges[stat]} min={1} max={100} disabled={disabled} onChange={(next) => onChange(withField(value, "care", { ...care, statChanges: withField(statChanges, stat, next) }))} />
+              ))}
+            </div>
+            <ReferenceListField label="Xóa trạng thái" value={care.removesConditionKeys} items={catalog.conditions} disabled={disabled} onChange={(next) => onChange(withField(value, "care", { ...care, removesConditionKeys: next }))} />
+          </>
+        )}
       </FormSection>
       <FormSection title="Mở khóa tài khoản">
         <OptionalRuleBuilder label="Điều kiện" value={value.accountUnlockRule} catalog={catalog} disabled={disabled} onChange={(next) => onChange(withField(value, "accountUnlockRule", next))} />
@@ -283,6 +326,7 @@ interface EditorProps {
 
 export function ResourceEditor({ resource, ...props }: EditorProps & { resource: AdminResource }) {
   if (resource === "characters") return <CharacterEditor {...props} />;
+  if (resource === "conditions") return <ConditionEditor {...props} />;
   if (resource === "items") return <ItemEditor {...props} />;
   if (resource === "locations") return <LocationEditor {...props} />;
   if (resource === "events") return <EventEditor {...props} />;

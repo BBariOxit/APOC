@@ -17,6 +17,12 @@ export const createRunRequestSchema = z
 
 export const advanceDayRequestSchema = commandBaseSchema;
 
+export const careCharacterRequestSchema = commandBaseSchema.extend({
+  characterKey: contentKeySchema,
+  itemKey: contentKeySchema,
+  action: z.enum(["feed", "hydrate", "heal"]),
+});
+
 export const resolveEventRequestSchema = commandBaseSchema.extend({
   intentKey: z.union([
     contentKeySchema,

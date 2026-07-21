@@ -27,6 +27,7 @@ export interface CharacterStats {
 }
 
 export interface CharacterCondition {
+  key: string;
   label: string;
   tone: "neutral" | "warning" | "danger";
 }
@@ -74,6 +75,7 @@ export interface InventoryItem {
   quantity: number;
   icon: ItemIconName;
   usable: boolean;
+  careAction?: "feed" | "hydrate" | "heal";
 }
 
 export interface DailyUpdate {

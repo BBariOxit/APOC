@@ -2,6 +2,7 @@ import type { AdminResource } from "@/features/admin/types";
 
 export const resourceLabels: Record<AdminResource, string> = {
   characters: "Nhân vật",
+  conditions: "Trạng thái",
   items: "Vật phẩm",
   locations: "Địa điểm",
   events: "Sự kiện",
@@ -18,6 +19,12 @@ export const contentTemplates: Record<AdminResource, Record<string, unknown>> = 
     baseStats: { health: 100, satiety: 100, hydration: 100, sanity: 100 },
     baseLoadoutSlots: 4,
     traits: [],
+  },
+  conditions: {
+    name: "Trạng thái mới",
+    description: "Mô tả trạng thái",
+    tone: "warning",
+    derivation: { type: "runtime" },
   },
   items: {
     name: "Vật phẩm mới",
