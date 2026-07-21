@@ -184,6 +184,11 @@ export const mockDailyUpdates: DailyUpdate[] = [
     title: "Hùng đã quay lại hầm",
     description: "Sau bốn ngày mất liên lạc, Hùng cuối cùng đã trở về.",
     time: "Rạng sáng",
+    effects: [
+      { label: "+2 Đồ hộp", tone: "positive" },
+      { label: "+1 Nước sạch", tone: "positive" },
+      { label: "Rìu đã hỏng", tone: "warning" },
+    ],
     actionLabel: "Đọc hành trình",
     destination: "journey",
   },
@@ -193,6 +198,35 @@ export const mockDailyUpdates: DailyUpdate[] = [
     title: "Có tiếng động ngoài cửa hầm",
     description: "Tiếng kim loại va vào nhau xuất hiện nhiều lần trong đêm.",
     time: "Đêm qua",
+  },
+];
+
+export const mockPreviousDayChanges: DailyUpdate[] = [
+  {
+    id: "day-11-consumption",
+    kind: "outcome",
+    label: "Tiêu hao hằng ngày",
+    title: "Nhóm đã sử dụng vật tư dự trữ",
+    description:
+      "Bốn người trong hầm đã nhận khẩu phần thức ăn và nước cho ngày hôm qua.",
+    time: "Khi qua ngày",
+    effects: [
+      { label: "Đồ hộp −4", tone: "negative" },
+      { label: "Nước sạch −4", tone: "negative" },
+    ],
+  },
+  {
+    id: "day-11-condition-change",
+    kind: "outcome",
+    label: "Thay đổi nhân vật",
+    title: "Tình trạng của nhóm đã được cập nhật",
+    description:
+      "Thiếu nước khiến Hùng suy yếu, trong khi vết thương của Lan chưa ổn định.",
+    time: "Cuối ngày 11",
+    effects: [
+      { label: "Hùng · Nước −12", tone: "negative" },
+      { label: "Lan · Bị thương", tone: "warning" },
+    ],
   },
 ];
 

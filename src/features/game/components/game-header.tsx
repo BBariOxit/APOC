@@ -6,8 +6,10 @@ import {
   LogOut,
   Menu,
   Settings,
+  Shield,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ interface GameHeaderProps {
   canEndDay: boolean;
   pendingEventCount: number;
   authenticated: boolean;
+  isAdmin: boolean;
   onLogin: () => void;
   onEndDay: () => void;
   onOpenEvent: () => void;
@@ -43,6 +46,7 @@ export function GameHeader({
   canEndDay,
   pendingEventCount,
   authenticated,
+  isAdmin,
   onLogin,
   onEndDay,
   onOpenEvent,
@@ -75,6 +79,16 @@ export function GameHeader({
         {!authenticated && (
           <Button size="sm" onClick={onLogin}>
             <LogIn /> Đăng nhập
+          </Button>
+        )}
+
+        {authenticated && isAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/admin/content" />}
+          >
+            <Shield /> Admin
           </Button>
         )}
 

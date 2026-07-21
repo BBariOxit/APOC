@@ -4,8 +4,6 @@ import {
   ArrowRight,
   CircleAlert,
   Footprints,
-  LoaderCircle,
-  LockKeyhole,
   MessageSquareText,
   Newspaper,
   PackageOpen,
@@ -13,7 +11,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -37,6 +35,7 @@ import {
   mockCurrentEvents,
   mockDailyUpdates,
   mockInventory,
+  mockPreviousDayChanges,
   mockReturnJourney,
 } from "@/features/game/mock-data";
 import { CharactersPanel } from "@/features/game/components/characters-panel";
@@ -234,7 +233,7 @@ function mapEvents(run: GameRunDto): CurrentEvent[] {
 export function GameplayScreen() {
   const [run, setRun] = useState<GameRunDto | null>(null);
   const [authenticated, setAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [mutating, setMutating] = useState(false);
   const [apiError, setApiError] = useState<GameApiError | null>(null);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
@@ -252,11 +251,12 @@ export function GameplayScreen() {
   const [hasUnreadReturnReport, setHasUnreadReturnReport] = useState(true);
 
   const loadRun = useCallback(async () => {
-    setLoading(true);
     setApiError(null);
     try {
       const nextRun = await gameRequest<GameRunDto | null>("/api/game-runs");
+      const session = await getSession();
       setAuthenticated(true);
+      setIsAdmin(session?.user.role === "admin");
       setRun(nextRun);
     } catch (caught) {
       const nextError = caught instanceof GameApiError
@@ -264,12 +264,11 @@ export function GameplayScreen() {
         : new GameApiError("NETWORK_ERROR", "Không kết nối được máy chủ.", 0);
       if (nextError.status === 401) {
         setAuthenticated(false);
+        setIsAdmin(false);
         setRun(null);
       } else {
         setApiError(nextError);
       }
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -292,10 +291,10 @@ export function GameplayScreen() {
         } else {
           setApiError(nextError);
         }
-      })
-      .finally(() => {
-        if (active) setLoading(false);
       });
+    getSession().then((session) => {
+      if (active) setIsAdmin(session?.user.role === "admin");
+    });
     return () => {
       active = false;
     };
@@ -376,53 +375,31 @@ export function GameplayScreen() {
       });
     }
 
-    characters
-      .filter((character) =>
-        character.state === "shelter" &&
-        (character.stats.health < 55 || character.stats.hydration < 35) &&
-        !completedCareActions.some((key) => key.startsWith(`${character.id}:`)),
-      )
-      .slice(0, 2)
-      .forEach((character) => {
-        tasks.push({
-          id: `care-${character.id}`,
-          type: "care",
-          title: `${character.name} cần được chăm sóc`,
-          description: "Một hoặc nhiều chỉ số của nhân vật đang xuống thấp.",
-          actionLabel: "Chăm sóc",
-          destination: "characters",
-        });
-      });
-
     return tasks;
-  }, [characters, completedCareActions, unresolvedEvents]);
+  }, [unresolvedEvents]);
 
   const visibleSelectedItemId = inventory.some((item) => item.id === selectedItemId)
     ? selectedItemId
     : inventory[0]?.id ?? null;
 
   const day = run?.day ?? 12;
-  const foodCount = inventory
-    .filter((item) => item.category === "food" && item.condition === "intact")
-    .reduce((total, item) => total + item.quantity, 0);
-  const waterCount = inventory
-    .filter((item) => item.category === "water" && item.condition === "intact")
-    .reduce((total, item) => total + item.quantity, 0);
-  const livingCharacters = characters.filter((character) => character.state !== "dead");
-  const groupSanity = livingCharacters.length
-    ? Math.round(livingCharacters.reduce((total, character) => total + character.stats.sanity, 0) / livingCharacters.length)
-    : 0;
-  const dailyUpdates: DailyUpdate[] = run
+  const dailyUpdates: DailyUpdate[] = run?.lastResult
     ? [{
         id: `run-${run.revision}`,
-        kind: run.lastResult ? "outcome" : "ambient",
-        label: run.lastResult ? "Kết quả mới nhất" : "Trạng thái hiện tại",
-        title: run.lastResult?.title ?? `Hầm trú ẩn vẫn hoạt động trong ngày ${run.day}`,
-        description: run.lastResult?.description ?? "Nhóm đang chờ chỉ thị tiếp theo từ người chỉ huy.",
+        kind: "outcome",
+        label: "Kết quả mới nhất",
+        title: run.lastResult.title,
+        description: run.lastResult.description,
         time: "Gần đây",
-        effects: run.lastResult?.effects.map((label) => ({ label, tone: "neutral" as const })),
+        effects: run.lastResult.effects.map((label) => ({ label, tone: "neutral" as const })),
       }]
-    : mockDailyUpdates;
+    : run
+      ? []
+      : mockDailyUpdates;
+  const ambientUpdates = dailyUpdates.filter((update) => update.kind === "ambient");
+  const expeditionUpdates = dailyUpdates.filter((update) => update.kind === "return");
+  const recentResults = dailyUpdates.filter((update) => update.kind === "outcome");
+  const previousDayChanges = run ? [] : mockPreviousDayChanges;
 
   function handleNavigate(tab: GameTab) {
     setActiveTab(tab);
@@ -442,30 +419,6 @@ export function GameplayScreen() {
       return null;
     }
     return run;
-  }
-
-  async function createRun() {
-    if (!authenticated) {
-      setAuthDialogOpen(true);
-      return;
-    }
-    setMutating(true);
-    setApiError(null);
-    try {
-      const nextRun = await gameRequest<GameRunDto>("/api/game-runs", {
-        method: "POST",
-        body: JSON.stringify({ mode: "normal" }),
-      });
-      setRun(nextRun);
-      setActiveTab(nextRun.pendingEvents.length ? "event" : "daily");
-      toast.success("Ván mới đã bắt đầu.");
-    } catch (caught) {
-      const error = caught as GameApiError;
-      setApiError(error);
-      toast.error(error.message);
-    } finally {
-      setMutating(false);
-    }
   }
 
   async function advanceDay() {
@@ -600,6 +553,7 @@ export function GameplayScreen() {
   async function logOutPlayer() {
     await signOut({ redirect: false });
     setAuthenticated(false);
+    setIsAdmin(false);
     setRun(null);
     setApiError(null);
     toast.success("Đã đăng xuất. Giao diện game vẫn mở ở chế độ xem trước.");
@@ -613,6 +567,7 @@ export function GameplayScreen() {
         canEndDay={canEndDay}
         pendingEventCount={unresolvedEvents.length}
         authenticated={authenticated}
+        isAdmin={isAdmin}
         onLogin={() => setAuthDialogOpen(true)}
         onEndDay={advanceDay}
         onOpenEvent={() => handleNavigate("event")}
@@ -620,43 +575,15 @@ export function GameplayScreen() {
       />
 
       <main className="mx-auto w-full max-w-[1600px] px-4 pb-24 pt-5 sm:px-6 sm:py-6 lg:px-8">
-        <div className="mb-5">
-          {loading ? (
-            <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-zinc-900/55 px-4 py-3 text-sm text-zinc-400">
-              <LoaderCircle className="size-4 animate-spin" /> Đang kiểm tra phiên đăng nhập…
-            </div>
-          ) : !authenticated ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-zinc-900/65 px-4 py-4 sm:flex-row sm:items-center">
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/6 text-zinc-300">
-                <LockKeyhole className="size-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">Bạn đang xem trước giao diện hầm trú ẩn</p>
-                <p className="mt-1 text-sm text-zinc-400">Đăng nhập hoặc đăng ký để tải dữ liệu ván chơi và lưu mọi quyết định.</p>
-              </div>
-              <Button onClick={() => setAuthDialogOpen(true)}>Đăng nhập để chơi</Button>
-            </div>
-          ) : !run ? (
-            <div className="flex flex-col gap-3 rounded-xl border border-emerald-300/15 bg-emerald-300/5 px-4 py-4 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-emerald-100">Tài khoản đã sẵn sàng</p>
-                <p className="mt-1 text-sm text-emerald-100/60">
-                  {apiError?.message ?? "Bắt đầu một ván mới để game engine tạo hầm, nhân vật và kho đồ của bạn."}
-                </p>
-              </div>
-              <Button onClick={createRun} disabled={mutating || apiError?.code === "NO_PUBLISHED_CONTENT"}>
-                {mutating ? <LoaderCircle className="animate-spin" /> : <ArrowRight />}
-                {mutating ? "Đang tạo ván…" : "Bắt đầu ván mới"}
-              </Button>
-            </div>
-          ) : apiError ? (
+        {run && apiError ? (
+          <div className="mb-5">
             <div className="flex items-center gap-3 rounded-xl border border-red-300/15 bg-red-300/5 px-4 py-3 text-sm text-red-200">
               <CircleAlert className="size-4" />
               <span className="min-w-0 flex-1">{apiError.message}</span>
               <Button variant="outline" size="sm" onClick={loadRun}>Tải lại</Button>
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         <Tabs
           value={activeTab}
@@ -697,17 +624,11 @@ export function GameplayScreen() {
               <TabsContent value="daily">
                 <DailyPanel
                   day={day}
-                  summary={
-                    run?.lastResult?.description ??
-                    (run
-                      ? "Một ngày mới bắt đầu trong hầm. Hãy kiểm tra vật tư, tình trạng nhân vật và các sự kiện đang chờ xử lý."
-                      : "Không ai ngủ ngon tối qua. Tiếng kim loại ngoài hành lang chỉ dừng lại khi trời gần sáng, còn lượng nước dự trữ đã xuống thấp hơn dự tính.")
-                  }
-                  foodCount={foodCount}
-                  waterCount={waterCount}
-                  groupSanity={groupSanity}
-                  updates={dailyUpdates}
-                  tasks={dailyTasks}
+                  ambients={ambientUpdates}
+                  previousDayChanges={previousDayChanges}
+                  pendingEvents={dailyTasks}
+                  expeditionUpdates={expeditionUpdates}
+                  recentResults={recentResults}
                   onNavigate={handleNavigate}
                   onOpenJournal={() =>
                     toast.info("Nhật ký đầy đủ sẽ được mở từ đây.")
