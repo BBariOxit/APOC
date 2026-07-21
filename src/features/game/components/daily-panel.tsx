@@ -97,65 +97,43 @@ export function DailyPanel({
 
       {hasUpdates ? (
         <>
-          {(ambients.length > 0 || previousDayChanges.length > 0) && (
-            <div
-              className={cn(
-                "grid items-start gap-6",
-                ambients.length > 0 &&
-                  previousDayChanges.length > 0 &&
-                  "xl:grid-cols-2",
-              )}
-            >
-              {ambients.length > 0 && (
-                <DailySection icon={Ear} title="Đầu ngày">
-                  <UpdateList
-                    updates={ambients}
-                    showDescription
-                    onNavigate={onNavigate}
-                  />
-                </DailySection>
-              )}
-
-              {previousDayChanges.length > 0 && (
-                <DailySection icon={PackageCheck} title="Hôm qua">
-                  <UpdateList
-                    updates={previousDayChanges}
-                    onNavigate={onNavigate}
-                  />
-                </DailySection>
-              )}
-            </div>
+          {ambients.length > 0 && (
+            <DailySection icon={Ear} title="Đầu ngày">
+              <UpdateList
+                updates={ambients}
+                showDescription
+                onNavigate={onNavigate}
+              />
+            </DailySection>
           )}
 
-          {(expeditionUpdates.length > 0 || recentResults.length > 0) && (
-            <div
-              className={cn(
-                "grid items-start gap-6",
-                expeditionUpdates.length > 0 &&
-                  recentResults.length > 0 &&
-                  "xl:grid-cols-2",
-              )}
-            >
-              {expeditionUpdates.length > 0 && (
-                <DailySection icon={Footprints} title="Thám hiểm">
-                  <UpdateList
-                    updates={expeditionUpdates}
-                    showDescription
-                    onNavigate={onNavigate}
-                  />
-                </DailySection>
-              )}
+          {previousDayChanges.length > 0 && (
+            <DailySection icon={PackageCheck} title="Hôm qua">
+              <UpdateList
+                updates={previousDayChanges}
+                onNavigate={onNavigate}
+              />
+            </DailySection>
+          )}
 
-              {recentResults.length > 0 && (
-                <DailySection icon={History} title="Kết quả gần đây">
-                  <UpdateList
-                    updates={recentResults}
-                    showDescription
-                    onNavigate={onNavigate}
-                  />
-                </DailySection>
-              )}
-            </div>
+          {expeditionUpdates.length > 0 && (
+            <DailySection icon={Footprints} title="Thám hiểm">
+              <UpdateList
+                updates={expeditionUpdates}
+                showDescription
+                onNavigate={onNavigate}
+              />
+            </DailySection>
+          )}
+
+          {recentResults.length > 0 && (
+            <DailySection icon={History} title="Kết quả gần đây">
+              <UpdateList
+                updates={recentResults}
+                showDescription
+                onNavigate={onNavigate}
+              />
+            </DailySection>
           )}
         </>
       ) : pendingEvents.length === 0 ? (
