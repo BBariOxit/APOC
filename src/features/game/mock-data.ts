@@ -206,7 +206,7 @@ export const mockPreviousDayChanges: DailyUpdate[] = [
     id: "day-11-consumption",
     kind: "outcome",
     label: "Tiêu hao hằng ngày",
-    title: "Nhóm đã sử dụng vật tư dự trữ",
+    title: "Đã dùng khẩu phần cho 4 người",
     description:
       "Bốn người trong hầm đã nhận khẩu phần thức ăn và nước cho ngày hôm qua.",
     time: "Khi qua ngày",
@@ -219,7 +219,7 @@ export const mockPreviousDayChanges: DailyUpdate[] = [
     id: "day-11-condition-change",
     kind: "outcome",
     label: "Thay đổi nhân vật",
-    title: "Tình trạng của nhóm đã được cập nhật",
+    title: "Hùng thiếu nước, Lan bị thương",
     description:
       "Thiếu nước khiến Hùng suy yếu, trong khi vết thương của Lan chưa ổn định.",
     time: "Cuối ngày 11",
