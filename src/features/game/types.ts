@@ -27,6 +27,7 @@ export interface CharacterStats {
 }
 
 export interface CharacterCondition {
+  key: string;
   label: string;
   tone: "neutral" | "warning" | "danger";
 }
@@ -74,6 +75,7 @@ export interface InventoryItem {
   quantity: number;
   icon: ItemIconName;
   usable: boolean;
+  careAction?: "feed" | "hydrate" | "heal";
 }
 
 export interface DailyUpdate {
@@ -95,7 +97,6 @@ export interface GameEffect {
 export interface JourneyEntry {
   id: string;
   day: number;
-  kind: "search" | "encounter" | "discovery" | "danger";
   title: string;
   location: string;
   description: string;
@@ -110,8 +111,6 @@ export interface ReturnJourneyReport {
   departedDay: number;
   returnedDay: number;
   durationDays: number;
-  condition: string;
-  summary: string;
   gains: GameEffect[];
   losses: GameEffect[];
   discoveries: GameEffect[];
@@ -143,7 +142,6 @@ export interface CurrentEvent {
   category: string;
   rarity: "common" | "uncommon" | "rare" | "ultra_rare";
   day: number;
-  location: string;
   choices: EventChoice[];
 }
 

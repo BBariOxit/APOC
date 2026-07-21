@@ -15,7 +15,7 @@ export const mockCharacters: GameCharacter[] = [
     baseLoadoutSlots: 4,
     state: "shelter",
     stats: { health: 78, satiety: 61, hydration: 34, sanity: 72 },
-    conditions: [{ label: "Đang khát", tone: "warning" }],
+    conditions: [{ key: "thirsty", label: "Đang khát", tone: "warning" }],
   },
   {
     id: "lan",
@@ -26,8 +26,8 @@ export const mockCharacters: GameCharacter[] = [
     state: "shelter",
     stats: { health: 48, satiety: 53, hydration: 67, sanity: 58 },
     conditions: [
-      { label: "Bị thương", tone: "danger" },
-      { label: "Cần nghỉ ngơi", tone: "neutral" },
+      { key: "wounded", label: "Bị thương", tone: "danger" },
+      { key: "resting", label: "Cần nghỉ ngơi", tone: "neutral" },
     ],
   },
   {
@@ -39,8 +39,8 @@ export const mockCharacters: GameCharacter[] = [
     state: "shelter",
     stats: { health: 71, satiety: 38, hydration: 24, sanity: 63 },
     conditions: [
-      { label: "Vừa trở về", tone: "neutral" },
-      { label: "Mất nước", tone: "danger" },
+      { key: "resting", label: "Vừa trở về", tone: "neutral" },
+      { key: "dehydrated", label: "Mất nước", tone: "danger" },
     ],
   },
   {
@@ -51,7 +51,7 @@ export const mockCharacters: GameCharacter[] = [
     baseLoadoutSlots: 3,
     state: "shelter",
     stats: { health: 69, satiety: 42, hydration: 55, sanity: 39 },
-    conditions: [{ label: "Lo âu", tone: "warning" }],
+    conditions: [{ key: "distressed", label: "Lo âu", tone: "warning" }],
   },
 ];
 
@@ -68,6 +68,7 @@ export const mockInventory: InventoryItem[] = [
     quantity: 6,
     icon: "can",
     usable: true,
+    careAction: "feed",
   },
   {
     id: "water-intact",
@@ -81,6 +82,7 @@ export const mockInventory: InventoryItem[] = [
     quantity: 4,
     icon: "water",
     usable: true,
+    careAction: "hydrate",
   },
   {
     id: "medicine-intact",
@@ -94,6 +96,7 @@ export const mockInventory: InventoryItem[] = [
     quantity: 1,
     icon: "medicine",
     usable: true,
+    careAction: "heal",
   },
   {
     id: "bandage-intact",
@@ -107,6 +110,7 @@ export const mockInventory: InventoryItem[] = [
     quantity: 2,
     icon: "bandage",
     usable: true,
+    careAction: "heal",
   },
   {
     id: "radio-intact",
@@ -200,6 +204,19 @@ export const mockDailyUpdates: DailyUpdate[] = [
 
 export const mockPreviousDayInventoryChanges: DailyUpdate[] = [
   {
+    id: "day-11-supplies-gained",
+    kind: "outcome",
+    label: "Vật tư nhận được",
+    title: "Đã bổ sung vật tư vào kho",
+    description:
+      "Vật tư Hùng mang về đã được kiểm kê và chuyển vào kho của hầm.",
+    effects: [
+      { label: "Đồ hộp +2", tone: "positive" },
+      { label: "Nước sạch +1", tone: "positive" },
+      { label: "Bản đồ cũ +1", tone: "positive" },
+    ],
+  },
+  {
     id: "day-11-consumption",
     kind: "outcome",
     label: "Tiêu hao hằng ngày",
@@ -221,9 +238,6 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
   departedDay: 8,
   returnedDay: 12,
   durationDays: 4,
-  condition: "Kiệt sức · Mất nước",
-  summary:
-    "Hùng mang về một số vật tư và phát hiện tuyến đường mới. Anh đang mất nước và cần được chăm sóc.",
   gains: [
     { label: "+2 Đồ hộp", tone: "positive" },
     { label: "+1 Nước sạch", tone: "positive" },
@@ -235,13 +249,11 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
   ],
   discoveries: [
     { label: "Mở khóa: Kho hàng số 4", tone: "neutral" },
-    { label: "Tuyến đường phía đông", tone: "neutral" },
   ],
   entries: [
     {
       id: "journey-day-1",
       day: 1,
-      kind: "search",
       title: "Những căn nhà im lặng",
       location: "Khu dân cư phía đông",
       description:
@@ -251,7 +263,6 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
     {
       id: "journey-day-2",
       day: 2,
-      kind: "encounter",
       title: "Người lạ bên đường",
       location: "Đường vành đai",
       description:
@@ -265,7 +276,6 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
     {
       id: "journey-day-3",
       day: 3,
-      kind: "discovery",
       title: "Trạm tiếp tế",
       location: "Kho hàng số 4",
       description:
@@ -275,7 +285,6 @@ export const mockReturnJourney: ReturnJourneyReport | null = {
     {
       id: "journey-day-4",
       day: 4,
-      kind: "danger",
       title: "Đường về",
       location: "Lối hầm phía bắc",
       description:
@@ -297,7 +306,6 @@ export const mockCurrentEvents: CurrentEvent[] = [
     category: "Sinh hoạt",
     rarity: "common",
     day: 12,
-    location: "Hành lang phía Tây",
     choices: [
       {
         id: "inspect-panel",
@@ -329,7 +337,6 @@ export const mockCurrentEvents: CurrentEvent[] = [
     category: "Gặp gỡ",
     rarity: "rare",
     day: 12,
-    location: "Cửa hầm phía Bắc",
     choices: [
       {
         id: "trade-water",
@@ -369,7 +376,6 @@ export const mockCurrentEvents: CurrentEvent[] = [
     category: "Tín hiệu",
     rarity: "uncommon",
     day: 12,
-    location: "Góc liên lạc",
     choices: [
       {
         id: "scan-radio",
@@ -409,7 +415,6 @@ export const mockCurrentEvents: CurrentEvent[] = [
     category: "Dị thường",
     rarity: "ultra_rare",
     day: 12,
-    location: "Phòng liên lạc",
     choices: [
       {
         id: "record-frequency",

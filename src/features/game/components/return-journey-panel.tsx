@@ -1,15 +1,10 @@
 import {
   ArrowLeft,
   CalendarDays,
-  Handshake,
-  HeartPulse,
   MapPin,
   MapPinned,
   PackageCheck,
-  PackageSearch,
   Route,
-  Search,
-  ShieldAlert,
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
@@ -25,9 +20,7 @@ import { cn } from "@/lib/utils";
 
 interface ReturnJourneyPanelProps {
   report: ReturnJourneyReport;
-  needsCare: boolean;
   onBackToDaily: () => void;
-  onCareCharacter: () => void;
 }
 
 const effectStyles: Record<GameEffect["tone"], string> = {
@@ -35,13 +28,6 @@ const effectStyles: Record<GameEffect["tone"], string> = {
   negative: "border-red-300/15 bg-red-300/8 text-red-200",
   warning: "border-amber-300/15 bg-amber-300/8 text-amber-200",
   neutral: "border-sky-300/12 bg-sky-300/6 text-sky-100/80",
-};
-
-const entryIcons: Record<JourneyEntry["kind"], LucideIcon> = {
-  search: Search,
-  encounter: Handshake,
-  discovery: PackageSearch,
-  danger: ShieldAlert,
 };
 
 const resultToneStyles = {
@@ -52,9 +38,7 @@ const resultToneStyles = {
 
 export function ReturnJourneyPanel({
   report,
-  needsCare,
   onBackToDaily,
-  onCareCharacter,
 }: ReturnJourneyPanelProps) {
   return (
     <section className="space-y-6">
@@ -75,9 +59,6 @@ export function ReturnJourneyPanel({
               <h1 className="mt-1.5 text-2xl font-semibold tracking-tight sm:text-[1.75rem]">
                 {report.characterName} đã trở về
               </h1>
-              <p className="mt-2 max-w-[70ch] text-sm leading-6 text-zinc-300">
-                {report.summary}
-              </p>
 
               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground sm:text-sm">
                 <span className="flex items-center gap-2">
@@ -85,9 +66,6 @@ export function ReturnJourneyPanel({
                 </span>
                 <span className="flex items-center gap-2">
                   <CalendarDays className="size-4" /> Trở về ngày {report.returnedDay}
-                </span>
-                <span className="flex items-center gap-2 text-amber-200/80">
-                  <HeartPulse className="size-4" /> {report.condition}
                 </span>
               </div>
             </div>
@@ -127,15 +105,10 @@ export function ReturnJourneyPanel({
         </ol>
       </div>
 
-      <div className="flex flex-col-reverse gap-3 border-t border-white/8 pt-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-t border-white/8 pt-5">
         <Button variant="outline" onClick={onBackToDaily}>
           <ArrowLeft /> Về Hằng ngày
         </Button>
-        {needsCare && (
-          <Button onClick={onCareCharacter}>
-            <HeartPulse /> Chăm sóc {report.characterName}
-          </Button>
-        )}
       </div>
     </section>
   );
@@ -186,8 +159,6 @@ interface JourneyRowProps {
 }
 
 function JourneyRow({ entry }: JourneyRowProps) {
-  const Icon = entryIcons[entry.kind];
-
   return (
     <li className="relative grid gap-3 sm:grid-cols-[5rem_minmax(0,1fr)] sm:gap-4">
       <div className="relative z-10 flex items-start sm:justify-center">
@@ -197,16 +168,11 @@ function JourneyRow({ entry }: JourneyRowProps) {
       </div>
 
       <article className="rounded-xl border border-white/6 bg-zinc-900/35 px-4 py-4 sm:px-5">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-white/5 text-zinc-400">
-            <Icon className="size-4" />
+        <div className="min-w-0">
+          <h3 className="font-medium">{entry.title}</h3>
+          <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="size-3.5" /> {entry.location}
           </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-medium">{entry.title}</h3>
-            <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <MapPin className="size-3.5" /> {entry.location}
-            </span>
-          </div>
         </div>
         <p className="mt-3 max-w-[80ch] text-sm leading-6 text-muted-foreground">
           {entry.description}

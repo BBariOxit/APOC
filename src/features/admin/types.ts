@@ -1,5 +1,6 @@
 export const adminResources = [
   "characters",
+  "conditions",
   "items",
   "locations",
   "events",

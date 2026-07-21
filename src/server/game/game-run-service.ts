@@ -12,6 +12,7 @@ import {
   AchievementDefinitionModel,
   AmbientDefinitionModel,
   CharacterDefinitionModel,
+  ConditionDefinitionModel,
   ContentVersionModel,
   EndingDefinitionModel,
   EventDefinitionModel,
@@ -36,6 +37,7 @@ import {
 } from "@/server/game/engine";
 import {
   advanceDayRequestSchema,
+  careCharacterRequestSchema,
   createRunRequestSchema,
   resolveEventRequestSchema,
 } from "@/server/game/schemas";
@@ -53,6 +55,7 @@ interface ContentBundle {
   version: AnyRecord;
   rules: AnyRecord;
   characters: AnyRecord[];
+  conditions: AnyRecord[];
   items: AnyRecord[];
   events: EventDefinitionLike[];
   ambients: AnyRecord[];
@@ -124,10 +127,11 @@ async function loadBundle(
   }
 
   const query = { contentVersionId: version._id, enabled: true };
-  const [rules, characters, items, events, ambients, endings, achievements] =
+  const [rules, characters, conditions, items, events, ambients, endings, achievements] =
     await Promise.all([
       GameRuleDefinitionModel.findOne({ contentVersionId: version._id }).session(session ?? null).lean().exec(),
       CharacterDefinitionModel.find(query).session(session ?? null).lean().exec(),
+      ConditionDefinitionModel.find(query).session(session ?? null).lean().exec(),
       ItemDefinitionModel.find(query).session(session ?? null).lean().exec(),
       EventDefinitionModel.find(query).session(session ?? null).lean().exec(),
       AmbientDefinitionModel.find(query).session(session ?? null).lean().exec(),
@@ -140,6 +144,7 @@ async function loadBundle(
     version: plain(version) as AnyRecord,
     rules: plain(rules) as AnyRecord,
     characters: plain(characters) as AnyRecord[],
+    conditions: plain(conditions) as AnyRecord[],
     items: plain(items) as AnyRecord[],
     events: plain(events) as unknown as EventDefinitionLike[],
     ambients: plain(ambients) as AnyRecord[],
@@ -217,6 +222,7 @@ function toDto(
   const state = asRuntime(value);
   const characterByKey = new Map(bundle.characters.map((entry) => [entry.key, entry]));
   const itemByKey = new Map(bundle.items.map((entry) => [entry.key, entry]));
+  const conditionByKey = new Map(bundle.conditions.map((entry) => [entry.key, entry]));
   const eventByKey = new Map(bundle.events.map((entry) => [entry.key, entry]));
   const endingByKey = new Map(bundle.endings.map((entry) => [entry.key, entry]));
 
@@ -228,18 +234,36 @@ function toDto(
     revision: value.revision,
     characters: state.characters.map((character) => {
       const definition = characterByKey.get(character.characterKey);
+      const nextExpeditionDay =
+        typeof character.nextExpeditionDay === "number"
+          ? character.nextExpeditionDay
+          : undefined;
       return {
         key: character.characterKey,
         name: definition?.name ?? character.characterKey,
         description: definition?.description ?? "",
         avatarUrl: definition?.avatarUrl ?? "",
+        baseLoadoutSlots: definition?.baseLoadoutSlots ?? 1,
         state: character.state,
         stats: character.stats,
-        conditions: character.conditions.map((condition) => ({
-          key: condition.type,
-          severity: condition.severity,
-          remainingDays: condition.remainingDays,
-        })),
+        conditions: [
+          ...character.conditions.map((condition) => {
+            const conditionDefinition = conditionByKey.get(condition.type);
+            return {
+              key: condition.type,
+              label: conditionDefinition?.name ?? condition.type.replaceAll("_", " "),
+              tone: conditionDefinition?.tone ?? (condition.severity && condition.severity >= 2 ? "danger" : "warning"),
+              remainingDays: condition.remainingDays,
+            };
+          }),
+          ...bundle.conditions
+            .filter((entry) => entry.derivation?.type === "stat_below" && character.stats[entry.derivation.stat as keyof typeof character.stats] < entry.derivation.threshold)
+            .filter((entry, _index, entries) => !entries.some((candidate) => candidate.derivation.stat === entry.derivation.stat && candidate.derivation.threshold < entry.derivation.threshold))
+            .map((entry) => ({ key: entry.key, label: entry.name, tone: entry.tone })),
+          ...bundle.conditions
+            .filter((entry) => entry.derivation?.type === "expedition_cooldown" && nextExpeditionDay !== undefined && nextExpeditionDay > state.day)
+            .map((entry) => ({ key: entry.key, label: entry.name, tone: entry.tone, remainingDays: (nextExpeditionDay ?? state.day) - state.day })),
+        ],
       };
     }),
     inventory: state.inventory.flatMap((entry) => {
@@ -252,6 +276,7 @@ function toDto(
         iconUrl: definition.iconUrl,
         category: definition.category,
         canBreak: definition.canBreak,
+        careAction: definition.care?.action,
         intactQuantity: entry.intactQuantity,
         brokenQuantity: entry.brokenQuantity,
       }];
@@ -505,6 +530,80 @@ export async function advanceGameDay(userId: string, runId: string, input: unkno
     });
   } finally { await session.endSession(); }
   if (!result) throw new Error("advance transaction completed without a result");
+  return result;
+}
+
+export async function careForGameCharacter(
+  userId: string,
+  runId: string,
+  input: unknown,
+): Promise<GameRunDto> {
+  const command = careCharacterRequestSchema.parse(input);
+  await connectToDatabase();
+  const repeated = await idempotentResult(userId, runId, command.commandId);
+  if (repeated) return repeated;
+  const mongoose = await connectToDatabase();
+  const session = await mongoose.startSession();
+  let result: GameRunDto | undefined;
+  try {
+    await session.withTransaction(async () => {
+      const run = await GameRunModel.findOne({ _id: runId, userId, status: "active" }).session(session).exec();
+      if (!run) throw new ApiError(404, "RUN_NOT_FOUND", "Active game run not found");
+      if (run.revision !== command.expectedRevision) throw new ApiError(409, "EDIT_CONFLICT", "Game state changed; reload before retrying");
+      const state = asRuntime(run);
+      const character = state.characters.find(({ characterKey }) => characterKey === command.characterKey);
+      if (!character || character.state !== "shelter") throw new ApiError(422, "CHARACTER_UNAVAILABLE", "Nhân vật hiện không thể nhận chăm sóc.");
+      const bundle = await loadBundle(String(run.contentVersionId), session);
+      const item = bundle.items.find(({ key }) => key === command.itemKey);
+      if (!item?.care || item.care.action !== command.action) {
+        throw new ApiError(422, "ITEM_NOT_USABLE", "Vật phẩm không phù hợp với hành động này.");
+      }
+      const inventory = state.inventory.find(({ itemKey }) => itemKey === command.itemKey);
+      if (!inventory || inventory.intactQuantity < 1) throw new ApiError(422, "ITEM_UNAVAILABLE", "Vật phẩm đã hết hoặc bị hỏng.");
+      const changesAStat = Object.entries(item.care.statChanges ?? {}).some(
+        ([stat, amount]) =>
+          Number(amount) > 0 &&
+          character.stats[stat as keyof typeof character.stats] < 100,
+      );
+      const removesACondition = (item.care.removesConditionKeys ?? []).some(
+        (conditionKey: string) => character.conditions.some(({ type }) => type === conditionKey),
+      );
+      if (!changesAStat && !removesACondition) {
+        throw new ApiError(422, "CARE_NOT_NEEDED", "Nhân vật chưa cần dùng vật phẩm này.");
+      }
+
+      const target = { mode: "character", characterKey: command.characterKey };
+      const effects = [
+        { type: "remove_item", target: { scope: "shelter" }, itemKey: command.itemKey, condition: "intact", quantity: 1 },
+        ...Object.entries(item.care.statChanges ?? {}).map(([stat, amount]) => ({ type: "modify_character_stat", target, stat, amount })),
+        ...(item.care.removesConditionKeys ?? []).map((condition: string) => ({ type: "remove_condition", target, condition })),
+      ];
+      const applied = applyEffects(effects, state, `care:${command.action}`);
+      const meta = await evaluateMetaContent(userId, runId, state, bundle, session);
+      const nextRevision = command.expectedRevision + 1;
+      applyRuntime(run, state, nextRevision);
+      await run.save({ session });
+      const actionLabels = { feed: "cho ăn", hydrate: "cho uống", heal: "chữa trị" } as const;
+      const title = `Đã ${actionLabels[command.action]} cho ${bundle.characters.find(({ key }) => key === command.characterKey)?.name ?? command.characterKey}`;
+      const description = `Đã dùng 1 ${item.name}.`;
+      const appliedEffects = [...applied.appliedEffects, ...meta.effects];
+      await RunEventLogModel.create([{
+        runId: run._id, userId, contentVersionId: run.contentVersionId, engineVersion: ENGINE_VERSION,
+        commandId: command.commandId, sequence: nextRevision, day: state.day, action: "care",
+        characterKey: command.characterKey, careAction: command.action, selectedItemKey: command.itemKey,
+        resultTitle: title, resultDescription: description,
+        randomRolls: [], appliedEffects, stateHash: stateHash(state),
+      }], { session });
+      result = toDto(run, bundle, {
+        title,
+        description,
+        effects: appliedEffects.map((effect) => effect.target ? `${effect.type}: ${effect.target}` : effect.type),
+      });
+    });
+  } finally {
+    await session.endSession();
+  }
+  if (!result) throw new Error("care transaction completed without a result");
   return result;
 }
 

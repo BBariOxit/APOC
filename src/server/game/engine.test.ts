@@ -152,6 +152,23 @@ test("applies inventory effects atomically to the snapshot", () => {
   });
 });
 
+test("applies a database-configured care action atomically", () => {
+  const state = createState();
+  state.characters[0].stats.health = 90;
+  state.characters[0].conditions = [{ type: "wounded", severity: 2 }];
+  state.inventory.push({ itemKey: "medicine", intactQuantity: 1, brokenQuantity: 0 });
+
+  applyEffects([
+    { type: "remove_item", target: { scope: "shelter" }, itemKey: "medicine", condition: "intact", quantity: 1 },
+    { type: "modify_character_stat", target: { mode: "character", characterKey: "lan" }, stat: "health", amount: 25 },
+    { type: "remove_condition", target: { mode: "character", characterKey: "lan" }, condition: "wounded" },
+  ], state, "care:heal");
+
+  assert.equal(state.inventory.some(({ itemKey }) => itemKey === "medicine"), false);
+  assert.equal(state.characters[0].stats.health, 100);
+  assert.deepEqual(state.characters[0].conditions, []);
+});
+
 test("resolves item branches by branch key when they share an item", () => {
   const state = createState();
   const event: EventDefinitionLike = {

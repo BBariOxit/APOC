@@ -85,7 +85,7 @@ export function CharacterCard({ character, onCare }: CharacterCardProps) {
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {sortedConditions.map((condition) => (
                 <Badge
-                  key={condition.label}
+                  key={condition.key}
                   variant="outline"
                   className={cn(
                     "font-normal",

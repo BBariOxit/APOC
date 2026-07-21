@@ -10,6 +10,7 @@
     "admin:create": "node scripts/create-admin.mjs",
     "admin:reset-password": "node scripts/reset-admin-password.mjs",
     "content:seed": "node scripts/seed-content.mjs",
+    "content:backfill-care": "node scripts/backfill-condition-care.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/server/game/*.test.ts",

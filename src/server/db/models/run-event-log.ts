@@ -85,6 +85,8 @@ const runEventLogSchema = new Schema(
     ambientKey: { type: String, trim: true },
     choiceKey: { type: String, trim: true },
     selectedItemKey: { type: String, trim: true },
+    characterKey: { type: String, trim: true },
+    careAction: { type: String, enum: ["feed", "hydrate", "heal"] },
     itemBranchKey: { type: String, trim: true },
     fallbackUsed: { type: Boolean },
     resolutionMode: {
@@ -155,6 +157,10 @@ runEventLogSchema.pre("validate", function validateActionReferences() {
 
   if (this.action === "ambient" && !this.ambientKey) {
     this.invalidate("ambientKey", "ambient logs require ambientKey");
+  }
+
+  if (this.action === "care" && (!this.characterKey || !this.selectedItemKey || !this.careAction)) {
+    this.invalidate("characterKey", "care logs require characterKey, selectedItemKey, and careAction");
   }
 
   if (

@@ -45,6 +45,7 @@ const itemDefinitionSchema = new Schema(
     hidden: { type: Boolean, required: true, default: false },
     tags: { type: [String], required: true, default: [] },
     accountUnlockRule: { type: Schema.Types.Mixed },
+    care: { type: Schema.Types.Mixed },
   },
   { collection: "item_definitions", timestamps: true },
 );
@@ -70,6 +71,7 @@ itemDefinitionSchema.pre("validate", function validateContent() {
     hidden: definition.hidden,
     tags: definition.tags,
     accountUnlockRule: definition.accountUnlockRule,
+    care: definition.care,
   });
   if (!result.success) {
     result.error.issues.forEach((issue) =>
