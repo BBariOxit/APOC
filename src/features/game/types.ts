@@ -82,7 +82,6 @@ export interface DailyUpdate {
   label?: string;
   title: string;
   description: string;
-  time: string;
   effects?: GameEffect[];
   actionLabel?: string;
   destination?: GameTab;

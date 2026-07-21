@@ -35,7 +35,7 @@ import {
   mockCurrentEvents,
   mockDailyUpdates,
   mockInventory,
-  mockPreviousDayChanges,
+  mockPreviousDayInventoryChanges,
   mockReturnJourney,
 } from "@/features/game/mock-data";
 import { CharactersPanel } from "@/features/game/components/characters-panel";
@@ -364,7 +364,6 @@ export function GameplayScreen() {
         label: "Kết quả mới nhất",
         title: run.lastResult.title,
         description: run.lastResult.description,
-        time: "Gần đây",
         effects: run.lastResult.effects.map((label) => ({ label, tone: "neutral" as const })),
       }]
     : run
@@ -372,8 +371,8 @@ export function GameplayScreen() {
       : mockDailyUpdates;
   const ambientUpdates = dailyUpdates.filter((update) => update.kind === "ambient");
   const expeditionUpdates = dailyUpdates.filter((update) => update.kind === "return");
-  const recentResults = dailyUpdates.filter((update) => update.kind === "outcome");
-  const previousDayChanges = run ? [] : mockPreviousDayChanges;
+  const previousDayEventReports = dailyUpdates.filter((update) => update.kind === "outcome");
+  const previousDayInventoryChanges = run ? [] : mockPreviousDayInventoryChanges;
 
   function handleNavigate(tab: GameTab) {
     setActiveTab(tab);
@@ -600,9 +599,9 @@ export function GameplayScreen() {
                 <DailyPanel
                   day={day}
                   ambients={ambientUpdates}
-                  previousDayChanges={previousDayChanges}
+                  previousDayEventReports={previousDayEventReports}
+                  previousDayInventoryChanges={previousDayInventoryChanges}
                   expeditionUpdates={expeditionUpdates}
-                  recentResults={recentResults}
                   onNavigate={handleNavigate}
                   onOpenJournal={() =>
                     toast.info("Nhật ký đầy đủ sẽ được mở từ đây.")
@@ -628,6 +627,7 @@ export function GameplayScreen() {
                   events={events}
                   inventory={inventory}
                   resolvedChoices={activeResolvedChoices}
+                  showEventQueue={!run && SHOWCASE_ALL_EVENT_RARITIES}
                   onResolve={handleResolveEvent}
                   onFinish={() => handleNavigate("daily")}
                 />

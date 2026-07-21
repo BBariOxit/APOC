@@ -20,9 +20,9 @@ import { cn } from "@/lib/utils";
 interface DailyPanelProps {
   day: number;
   ambients: DailyUpdate[];
-  previousDayChanges: DailyUpdate[];
+  previousDayInventoryChanges: DailyUpdate[];
+  previousDayEventReports: DailyUpdate[];
   expeditionUpdates: DailyUpdate[];
-  recentResults: DailyUpdate[];
   onNavigate: (tab: GameTab) => void;
   onOpenJournal: () => void;
 }
@@ -52,17 +52,17 @@ const effectStyles: Record<GameEffect["tone"], string> = {
 export function DailyPanel({
   day,
   ambients,
-  previousDayChanges,
+  previousDayInventoryChanges,
+  previousDayEventReports,
   expeditionUpdates,
-  recentResults,
   onNavigate,
   onOpenJournal,
 }: DailyPanelProps) {
   const hasUpdates =
     ambients.length > 0 ||
-    previousDayChanges.length > 0 ||
-    expeditionUpdates.length > 0 ||
-    recentResults.length > 0;
+    previousDayEventReports.length > 0 ||
+    previousDayInventoryChanges.length > 0 ||
+    expeditionUpdates.length > 0;
 
   return (
     <section className="space-y-6">
@@ -90,10 +90,20 @@ export function DailyPanel({
             </DailySection>
           )}
 
-          {previousDayChanges.length > 0 && (
-            <DailySection icon={PackageCheck} title="Hôm qua">
+          {previousDayEventReports.length > 0 && (
+            <DailySection icon={History} title="Báo cáo sự kiện hôm qua">
               <UpdateList
-                updates={previousDayChanges}
+                updates={previousDayEventReports}
+                showDescription
+                onNavigate={onNavigate}
+              />
+            </DailySection>
+          )}
+
+          {previousDayInventoryChanges.length > 0 && (
+            <DailySection icon={PackageCheck} title="Vật tư hôm qua">
+              <UpdateList
+                updates={previousDayInventoryChanges}
                 onNavigate={onNavigate}
               />
             </DailySection>
@@ -103,16 +113,6 @@ export function DailyPanel({
             <DailySection icon={Footprints} title="Thám hiểm">
               <UpdateList
                 updates={expeditionUpdates}
-                showDescription
-                onNavigate={onNavigate}
-              />
-            </DailySection>
-          )}
-
-          {recentResults.length > 0 && (
-            <DailySection icon={History} title="Kết quả gần đây">
-              <UpdateList
-                updates={recentResults}
                 showDescription
                 onNavigate={onNavigate}
               />
@@ -200,10 +200,7 @@ function UpdateRow({
         <Icon className="size-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-          <h3 className="font-medium">{update.title}</h3>
-          <span className="shrink-0 text-xs text-zinc-500">{update.time}</span>
-        </div>
+        <h3 className="font-medium">{update.title}</h3>
         {showDescription && (
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
             {update.description}

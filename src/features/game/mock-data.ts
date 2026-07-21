@@ -171,7 +171,6 @@ export const mockDailyUpdates: DailyUpdate[] = [
     title: "Cửa phụ đã được gia cố",
     description:
       "Minh và An đã dùng những tấm kim loại còn lại để đóng kín cửa phụ. Minh bị thương nhẹ trong lúc làm việc.",
-    time: "Cuối ngày 11",
     effects: [
       { label: "An toàn hầm +1", tone: "positive" },
       { label: "Minh · Sức khỏe −8", tone: "negative" },
@@ -183,7 +182,6 @@ export const mockDailyUpdates: DailyUpdate[] = [
     label: "Đã trở về",
     title: "Hùng đã quay lại hầm",
     description: "Sau bốn ngày mất liên lạc, Hùng cuối cùng đã trở về.",
-    time: "Rạng sáng",
     effects: [
       { label: "+2 Đồ hộp", tone: "positive" },
       { label: "+1 Nước sạch", tone: "positive" },
@@ -197,11 +195,10 @@ export const mockDailyUpdates: DailyUpdate[] = [
     kind: "ambient",
     title: "Có tiếng động ngoài cửa hầm",
     description: "Tiếng kim loại va vào nhau xuất hiện nhiều lần trong đêm.",
-    time: "Đêm qua",
   },
 ];
 
-export const mockPreviousDayChanges: DailyUpdate[] = [
+export const mockPreviousDayInventoryChanges: DailyUpdate[] = [
   {
     id: "day-11-consumption",
     kind: "outcome",
@@ -209,23 +206,9 @@ export const mockPreviousDayChanges: DailyUpdate[] = [
     title: "Đã dùng khẩu phần cho 4 người",
     description:
       "Bốn người trong hầm đã nhận khẩu phần thức ăn và nước cho ngày hôm qua.",
-    time: "Khi qua ngày",
     effects: [
       { label: "Đồ hộp −4", tone: "negative" },
       { label: "Nước sạch −4", tone: "negative" },
-    ],
-  },
-  {
-    id: "day-11-condition-change",
-    kind: "outcome",
-    label: "Thay đổi nhân vật",
-    title: "Hùng thiếu nước, Lan bị thương",
-    description:
-      "Thiếu nước khiến Hùng suy yếu, trong khi vết thương của Lan chưa ổn định.",
-    time: "Cuối ngày 11",
-    effects: [
-      { label: "Hùng · Nước −12", tone: "negative" },
-      { label: "Lan · Bị thương", tone: "warning" },
     ],
   },
 ];
