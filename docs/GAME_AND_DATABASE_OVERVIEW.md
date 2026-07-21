@@ -112,7 +112,7 @@ Các mode trigger ban đầu:
 
 UI luôn hiện tên rarity bằng text, không chỉ dựa vào màu. Queue card chỉ giữ title, badge rarity và trạng thái đã xử lý; không lặp icon chung, location hoặc chevron. Title được xuống tối đa hai dòng, còn location chỉ xuất hiện trong event detail. Event đang mở đặt rarity cạnh category. Layout và choice card không đổi theo rarity, chỉ event shell, badge và accent thay đổi có kiểm soát: xám cho Thường, xanh sky cho Ít gặp, tím violet cho Hiếm và vàng amber cho Cực hiếm. Hiếm/Cực hiếm có thể có glow hoặc entrance motion nhẹ nhưng không dùng animation lặp gây nhiễu, và màu rarity không được áp lên từng choice vì có thể ám chỉ outcome.
 
-Trong giai đoạn dựng giao diện, `SHOWCASE_ALL_EVENT_RARITIES` tạm bỏ qua giới hạn ba event để render đồng thời bốn mock event, mỗi event đại diện một rarity. Đây không phải luật gameplay; khi nối game engine phải tắt showcase để `MAX_EVENTS_PER_DAY` tiếp tục là giới hạn hiệu lực.
+Gameplay runtime lấy giới hạn event từ `dailyRules.maxEventsPerDay`; UI chỉ render queue server trả về và không có chế độ showcase làm sai giới hạn này.
 
 ### 2.4.1. Ambient hằng ngày
 

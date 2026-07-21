@@ -82,19 +82,9 @@ export interface DailyUpdate {
   label?: string;
   title: string;
   description: string;
-  time: string;
   effects?: GameEffect[];
   actionLabel?: string;
   destination?: GameTab;
-}
-
-export interface DailyTask {
-  id: string;
-  type: "event" | "care";
-  title: string;
-  description: string;
-  actionLabel: string;
-  destination: GameTab;
 }
 
 export interface GameEffect {
@@ -132,6 +122,8 @@ export interface EventChoice {
   id: string;
   label: string;
   description?: string;
+  available?: boolean;
+  unavailableReason?: string;
   requiredItem?: {
     itemKey: string;
     quantity: number;

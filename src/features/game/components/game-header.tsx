@@ -2,11 +2,14 @@ import {
   ArrowRight,
   Award,
   CircleAlert,
+  LogIn,
   LogOut,
   Menu,
   Settings,
+  Shield,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +31,10 @@ interface GameHeaderProps {
   day: number;
   aliveCount: number;
   canEndDay: boolean;
-  pendingEventCount: number;
+  hasPendingEvents: boolean;
+  authenticated: boolean;
+  isAdmin: boolean;
+  onLogin: () => void;
   onEndDay: () => void;
   onOpenEvent: () => void;
   onMenuAction: (action: "achievements" | "settings" | "leave") => void;
@@ -38,7 +44,10 @@ export function GameHeader({
   day,
   aliveCount,
   canEndDay,
-  pendingEventCount,
+  hasPendingEvents,
+  authenticated,
+  isAdmin,
+  onLogin,
   onEndDay,
   onOpenEvent,
   onMenuAction,
@@ -67,7 +76,23 @@ export function GameHeader({
           </Tooltip>
         </div>
 
-        {pendingEventCount > 0 && (
+        {!authenticated && (
+          <Button size="sm" onClick={onLogin}>
+            <LogIn /> Đăng nhập
+          </Button>
+        )}
+
+        {authenticated && isAdmin && (
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/admin/content" />}
+          >
+            <Shield /> Admin
+          </Button>
+        )}
+
+        {authenticated && hasPendingEvents && (
           <Button
             variant="ghost"
             size="sm"
@@ -75,12 +100,7 @@ export function GameHeader({
             className="relative text-amber-200/80 hover:bg-amber-300/10 hover:text-amber-100"
           >
             <CircleAlert />
-            <span className="hidden lg:inline">
-              {pendingEventCount} sự kiện chưa xử lý
-            </span>
-            <span className="grid min-w-4 place-items-center rounded-full bg-white/8 px-1 font-mono text-[10px] leading-4 lg:hidden">
-              {pendingEventCount}
-            </span>
+            <span className="hidden lg:inline">Có sự kiện chưa xử lý</span>
           </Button>
         )}
 
@@ -119,12 +139,14 @@ export function GameHeader({
               <Settings /> Cài đặt
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              variant="destructive"
-              onClick={() => onMenuAction("leave")}
-            >
-              <LogOut /> Rời ván chơi
-            </DropdownMenuItem>
+            {authenticated && (
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => onMenuAction("leave")}
+              >
+                <LogOut /> Đăng xuất
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

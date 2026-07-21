@@ -171,7 +171,6 @@ export const mockDailyUpdates: DailyUpdate[] = [
     title: "Cửa phụ đã được gia cố",
     description:
       "Minh và An đã dùng những tấm kim loại còn lại để đóng kín cửa phụ. Minh bị thương nhẹ trong lúc làm việc.",
-    time: "Cuối ngày 11",
     effects: [
       { label: "An toàn hầm +1", tone: "positive" },
       { label: "Minh · Sức khỏe −8", tone: "negative" },
@@ -183,7 +182,11 @@ export const mockDailyUpdates: DailyUpdate[] = [
     label: "Đã trở về",
     title: "Hùng đã quay lại hầm",
     description: "Sau bốn ngày mất liên lạc, Hùng cuối cùng đã trở về.",
-    time: "Rạng sáng",
+    effects: [
+      { label: "+2 Đồ hộp", tone: "positive" },
+      { label: "+1 Nước sạch", tone: "positive" },
+      { label: "Rìu đã hỏng", tone: "warning" },
+    ],
     actionLabel: "Đọc hành trình",
     destination: "journey",
   },
@@ -192,7 +195,21 @@ export const mockDailyUpdates: DailyUpdate[] = [
     kind: "ambient",
     title: "Có tiếng động ngoài cửa hầm",
     description: "Tiếng kim loại va vào nhau xuất hiện nhiều lần trong đêm.",
-    time: "Đêm qua",
+  },
+];
+
+export const mockPreviousDayInventoryChanges: DailyUpdate[] = [
+  {
+    id: "day-11-consumption",
+    kind: "outcome",
+    label: "Tiêu hao hằng ngày",
+    title: "Đã dùng khẩu phần cho 4 người",
+    description:
+      "Bốn người trong hầm đã nhận khẩu phần thức ăn và nước cho ngày hôm qua.",
+    effects: [
+      { label: "Đồ hộp −4", tone: "negative" },
+      { label: "Nước sạch −4", tone: "negative" },
+    ],
   },
 ];
 

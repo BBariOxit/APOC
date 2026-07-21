@@ -175,7 +175,7 @@ export function ExpeditionPanel({
         </Card>
       </div>
 
-      <Card className="sticky bottom-3 z-20 bg-zinc-900/95 shadow-xl backdrop-blur">
+      <Card className="bg-zinc-900/95 shadow-none">
         <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="font-medium text-zinc-200">

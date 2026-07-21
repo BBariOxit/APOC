@@ -111,6 +111,16 @@ test("uses seed and cursor to select events deterministically", () => {
   assert.equal(second.random.cursor, 1);
 });
 
+test("does not queue events from the same mutex group together", () => {
+  const state = createState();
+  const first = { ...choiceEvent("first"), mutexGroup: "visitor" };
+  const second = { ...choiceEvent("second"), mutexGroup: "visitor" };
+
+  generatePendingEvents(state, [first, second], 2, () => crypto.randomUUID());
+
+  assert.equal(state.eventState.pendingEvents.length, 1);
+});
+
 test("resolves an event and applies its effects once", () => {
   const state = createState();
   const event = choiceEvent("decision");
@@ -140,6 +150,69 @@ test("applies inventory effects atomically to the snapshot", () => {
     intactQuantity: 1,
     brokenQuantity: 0,
   });
+});
+
+test("resolves item branches by branch key when they share an item", () => {
+  const state = createState();
+  const event: EventDefinitionLike = {
+    ...choiceEvent("repair_or_salvage"),
+    interaction: {
+      mode: "item_selection",
+      source: "player",
+      itemBranches: [
+        {
+          key: "use_intact_radio",
+          itemKey: "radio",
+          condition: "intact",
+          quantity: 1,
+          resolution: {
+            mode: "deterministic",
+            title: "Broadcast",
+            description: "The intact radio works.",
+            effects: [{ type: "set_flag", key: "broadcast", value: true }],
+          },
+        },
+        {
+          key: "salvage_broken_radio",
+          itemKey: "radio",
+          condition: "broken",
+          quantity: 1,
+          resolution: {
+            mode: "deterministic",
+            title: "Salvage",
+            description: "The broken radio is salvaged.",
+            effects: [{ type: "set_flag", key: "salvaged", value: true }],
+          },
+        },
+      ],
+      noItemBranch: {
+        label: "Do nothing",
+        availability: "fallback_only",
+        resolution: {
+          mode: "deterministic",
+          title: "Nothing",
+          description: "Nothing happens.",
+        },
+      },
+    },
+  };
+  state.inventory.find(({ itemKey }) => itemKey === "radio")!.brokenQuantity = 1;
+  state.eventState.pendingEvents.push({
+    instanceId: "item-instance",
+    eventKey: event.key,
+    generatedDay: 1,
+    sequence: 0,
+  });
+
+  const result = resolveEvent(state, event, "item-instance", {
+    itemBranchKey: "salvage_broken_radio",
+  });
+
+  assert.equal(result.itemBranchKey, "salvage_broken_radio");
+  assert.equal(result.selectedItemKey, "radio");
+  assert.equal(result.title, "Salvage");
+  assert.equal(state.flags.salvaged, true);
+  assert.equal(state.flags.broadcast, undefined);
 });
 
 test("consumes daily supplies and penalizes deterministic characters on shortage", () => {

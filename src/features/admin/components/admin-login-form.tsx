@@ -16,19 +16,24 @@ export function AdminLoginForm() {
     event.preventDefault();
     setPending(true);
     setError(null);
-    const form = new FormData(event.currentTarget);
-    const result = await signIn("credentials", {
-      identifier: form.get("identifier"),
-      password: form.get("password"),
-      redirect: false,
-    });
-    setPending(false);
-    if (result?.error) {
-      setError("Thông tin đăng nhập không hợp lệ hoặc tài khoản đã bị khoá.");
-      return;
+    try {
+      const form = new FormData(event.currentTarget);
+      const result = await signIn("credentials", {
+        identifier: form.get("identifier"),
+        password: form.get("password"),
+        redirect: false,
+      });
+      if (result?.error) {
+        setError("Thông tin đăng nhập không hợp lệ hoặc tài khoản đã bị khoá.");
+        return;
+      }
+      router.push("/admin/content");
+      router.refresh();
+    } catch {
+      setError("Không thể kết nối tới máy chủ. Vui lòng thử lại.");
+    } finally {
+      setPending(false);
     }
-    router.push("/admin/content");
-    router.refresh();
   }
 
   return (

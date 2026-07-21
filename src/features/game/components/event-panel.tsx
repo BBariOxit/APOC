@@ -31,6 +31,7 @@ interface EventPanelProps {
   events: CurrentEvent[];
   inventory: InventoryItem[];
   resolvedChoices: Record<string, string>;
+  showEventQueue?: boolean;
   onResolve: (eventId: string, choiceId: string) => void;
   onFinish: () => void;
 }
@@ -116,16 +117,8 @@ function EventQueue({
   resolvedChoices: Record<string, string>;
   onSelect: (eventId: string) => void;
 }) {
-  const pendingEvents = events.filter((event) => !resolvedChoices[event.id]);
-
   return (
-    <section aria-labelledby="event-queue-heading" className="space-y-3">
-      <h2 id="event-queue-heading" className="text-sm font-medium">
-        {pendingEvents.length > 0
-          ? `${pendingEvents.length} sự kiện chờ xử lý`
-          : "Đã xử lý mọi sự kiện"}
-      </h2>
-
+    <section aria-label="Các sự kiện mẫu">
       <div
         className={cn(
           "grid gap-2 sm:grid-cols-2",
@@ -201,7 +194,8 @@ function ChoiceCard({
     ? getAvailableQuantity(inventory, requirement.itemKey)
     : Number.POSITIVE_INFINITY;
   const isAvailable =
-    !requirement || availableQuantity >= requirement.quantity;
+    choice.available !== false &&
+    (!requirement || availableQuantity >= requirement.quantity);
 
   return (
     <button
@@ -246,11 +240,13 @@ function ChoiceCard({
             </span>
           )}
 
-          {!isAvailable && requirement && (
+          {!isAvailable && (
             <span className="mt-2 flex items-center gap-1.5 text-xs text-red-300">
               <LockKeyhole className="size-3.5" />
-              Thiếu {Math.max(requirement.quantity - availableQuantity, 0)}{" "}
-              {item?.shortName.toLowerCase() ?? "vật phẩm"}
+              {choice.unavailableReason ??
+                (requirement
+                  ? `Thiếu ${Math.max(requirement.quantity - availableQuantity, 0)} ${item?.shortName.toLowerCase() ?? "vật phẩm"}`
+                  : "Lựa chọn này chưa khả dụng")}
             </span>
           )}
         </span>
@@ -326,6 +322,7 @@ export function EventPanel({
   events,
   inventory,
   resolvedChoices,
+  showEventQueue = false,
   onResolve,
   onFinish,
 }: EventPanelProps) {
@@ -384,7 +381,7 @@ export function EventPanel({
       transition={{ duration: 0.2 }}
       className="space-y-5"
     >
-      {events.length > 1 && (
+      {showEventQueue && events.length > 1 && (
         <EventQueue
           events={events}
           activeEventId={activeEvent.id}
